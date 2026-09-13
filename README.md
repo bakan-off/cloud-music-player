@@ -5,12 +5,12 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.41+-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.11+-0175C2?logo=dart&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-Ready-3DDC84?logo=android&logoColor=white)
-![Release](https://img.shields.io/badge/Release-v1.0.2-success?logo=github)
+![Release](https://img.shields.io/badge/Release-v1.0.3-success?logo=github)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ## 📥 Скачать приложение
 
-👉 **[Скачать cloud-music-player-v1.0.2.apk (56 МБ)](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.2/cloud-music-player-v1.0.2.apk)**
+👉 **[Скачать cloud-music-player-v1.0.3.apk](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.3/cloud-music-player-v1.0.3.apk)**
 
 Все релизы доступны на странице: [GitHub Releases](https://github.com/bakan-off/cloud-music-player/releases)
 
@@ -18,6 +18,7 @@
 
 ## 🌟 Ключевые особенности
 
+- 🎨 **5 визуальных тем оформления:** Фиолетовый обсидиан, Полуночный океан, Изумрудный киберпанк, Закатный янтарь и AMOLED Черный с мгновенным переключением и сохранением выбора.
 - 🔄 **Автоматическое обновление внутри приложения:** проверка новых релизов с GitHub в Настройках, скачивание с прогресс-баром и запуск установки в один клик.
 - 📱 **Фоновое воспроизведение и системный мини-плеер:** музыка не засыпает при выключенном экране; управление из шторки уведомлений и экрана блокировки.
 - ☁️ **Стриминг из облака без авторизации:** открывает публичные папки Google Диска и Яндекс.Диска любого объема (800+ треков) без токенов, логинов и API-ключей.

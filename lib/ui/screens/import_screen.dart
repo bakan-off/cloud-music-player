@@ -169,8 +169,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Добавлено 4 тестовых трека (включая 1★ для проверки очистки)!'),
+        SnackBar(
+          content: const Text('Добавлено 4 тестовых трека (включая 1★ для проверки очистки)!'),
           backgroundColor: AppTheme.successColor,
         ),
       );
@@ -204,16 +204,16 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.cloud_done_rounded, color: AppTheme.successColor, size: 22),
+                        Icon(Icons.cloud_done_rounded, color: AppTheme.successColor, size: 22),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Подключенная папка в облаке',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                           ),
                         ),
                         if (_isProcessing)
-                          const SizedBox(
+                          SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryAccent),
@@ -225,14 +225,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                       libraryState.activeCloudUrl!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         Text(
                           'В облаке: ${libraryState.lastCloudCheckCount ?? libraryState.tracks.length} треков',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryAccent),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryAccent),
                         ),
                         const Spacer(),
                         ElevatedButton.icon(
@@ -277,10 +277,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             ],
 
             // Section 2: Input Cloud Link
-            const Row(
+            Row(
               children: [
                 Icon(Icons.add_link_rounded, color: AppTheme.primaryAccent, size: 24),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Text(
                   'Папка в облаке (Google Диск / Яндекс)',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
@@ -288,7 +288,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Вставьте публичную ссылку на открытую папку Google Drive или Яндекс.Диска. '
               'Авторизация и ключи API не требуются — приложение автоматически загрузит всю коллекцию.',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
@@ -299,9 +299,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               controller: _urlController,
               decoration: InputDecoration(
                 hintText: 'drive.google.com/drive/folders/... или disk.yandex.ru/d/...',
-                prefixIcon: const Icon(Icons.link_rounded, color: AppTheme.textSecondary),
+                prefixIcon: Icon(Icons.link_rounded, color: AppTheme.textSecondary),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.paste_rounded, color: AppTheme.primaryAccent),
+                  icon: Icon(Icons.paste_rounded, color: AppTheme.primaryAccent),
                   tooltip: 'Вставить из буфера',
                   onPressed: _pasteFromClipboard,
                 ),
@@ -317,11 +317,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppTheme.dividerDark),
+                      side: BorderSide(color: AppTheme.dividerDark),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    icon: const Icon(Icons.numbers_rounded, size: 18, color: AppTheme.textSecondary),
-                    label: const Text(
+                    icon: Icon(Icons.numbers_rounded, size: 18, color: AppTheme.textSecondary),
+                    label: Text(
                       'Проверить количество',
                       style: TextStyle(color: AppTheme.textPrimary, fontSize: 13),
                     ),
@@ -387,14 +387,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               ),
 
             const SizedBox(height: 32),
-            const Divider(color: AppTheme.dividerDark),
+            Divider(color: AppTheme.dividerDark),
             const SizedBox(height: 24),
 
             // Section 3: Local Audio File
-            const Row(
+            Row(
               children: [
                 Icon(Icons.folder_open_rounded, color: AppTheme.primaryAccent, size: 24),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Text(
                   'Открыть локальный трек',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
@@ -402,7 +402,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Выберите аудиофайлы на телефоне или компьютере, чтобы прослушать их, сразу выставить звезды рейтинга и сохранить в коллекцию.',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
             ),
@@ -413,11 +413,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: AppTheme.primaryAccent),
+                  side: BorderSide(color: AppTheme.primaryAccent),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                icon: const Icon(Icons.audio_file_rounded, color: AppTheme.primaryAccent),
-                label: const Text(
+                icon: Icon(Icons.audio_file_rounded, color: AppTheme.primaryAccent),
+                label: Text(
                   'Выбрать файл(ы) на устройстве',
                   style: TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.bold),
                 ),
@@ -426,14 +426,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             ),
 
             const SizedBox(height: 32),
-            const Divider(color: AppTheme.dividerDark),
+            Divider(color: AppTheme.dividerDark),
             const SizedBox(height: 24),
 
             // Section 4: Demo / Test Pack
-            const Row(
+            Row(
               children: [
                 Icon(Icons.auto_awesome_rounded, color: AppTheme.starColor, size: 24),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Text(
                   'Быстрый старт (Тестовые треки)',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
@@ -441,7 +441,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Хотите сразу протестировать воспроизведение, оффлайн-кэш, шаффл и очистку 1-звездочных треков? Добавьте готовый демо-набор в 1 клик.',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
             ),
@@ -455,11 +455,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: const BorderSide(color: AppTheme.dividerDark),
+                    side: BorderSide(color: AppTheme.dividerDark),
                   ),
                 ),
-                icon: const Icon(Icons.playlist_add_check_rounded, color: AppTheme.starColor),
-                label: const Text(
+                icon: Icon(Icons.playlist_add_check_rounded, color: AppTheme.starColor),
+                label: Text(
                   'Добавить 4 тестовых трека',
                   style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
                 ),

@@ -26,7 +26,7 @@ class CachedScreen extends ConsumerWidget {
         actions: [
           if (cachedTracks.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerColor),
+              icon: Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerColor),
               tooltip: 'Очистить весь кэш',
               onPressed: () => _confirmClearAllCache(context, ref, cachedTracks),
             ),
@@ -52,7 +52,7 @@ class CachedScreen extends ConsumerWidget {
                     color: AppTheme.successColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.offline_pin_rounded, color: AppTheme.successColor, size: 28),
+                  child: Icon(Icons.offline_pin_rounded, color: AppTheme.successColor, size: 28),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -61,7 +61,7 @@ class CachedScreen extends ConsumerWidget {
                     children: [
                       Text(
                         '${cachedTracks.length} треков доступно без интернета',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
@@ -70,7 +70,7 @@ class CachedScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         'Занято на устройстве: $formattedTotalSize',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -120,7 +120,7 @@ class CachedScreen extends ConsumerWidget {
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Чтобы слушать музыку без интернета, нажмите кнопку скачивания рядом с треком в медиатеке.',
                             textAlign: TextAlign.center,
                             style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
@@ -172,7 +172,7 @@ class CachedScreen extends ConsumerWidget {
                               '${track.artist} • ${track.formattedSize}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -185,7 +185,7 @@ class CachedScreen extends ConsumerWidget {
                                   },
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.textSecondary, size: 20),
+                                  icon: Icon(Icons.delete_outline_rounded, color: AppTheme.textSecondary, size: 20),
                                   tooltip: 'Удалить из памяти',
                                   onPressed: () async {
                                     await ref.read(libraryProvider.notifier).toggleCache(track);
@@ -216,7 +216,7 @@ class CachedScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerColor),

@@ -42,7 +42,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 _currentIndex = index;
               });
             },
-            items: const [
+            items: [
               BottomNavigationBarItem(
                 icon: Icon(Icons.music_note_rounded),
                 activeIcon: Icon(Icons.music_note_rounded, color: AppTheme.primaryAccent),

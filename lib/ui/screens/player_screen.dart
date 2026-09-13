@@ -46,7 +46,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         if (track == null) {
           return Scaffold(
             appBar: AppBar(leading: const BackButton()),
-            body: const Center(
+            body: Center(
               child: Text(
                 'Ничего не воспроизводится',
                 style: TextStyle(color: AppTheme.textSecondary),
@@ -134,7 +134,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                               child: Container(
                                 width: 80,
                                 height: 80,
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: AppTheme.primaryColor,
                                 ),
@@ -157,7 +157,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
@@ -167,7 +167,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                       Text(
                         track.artist,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           color: AppTheme.textSecondary,
                         ),
@@ -267,7 +267,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                             bufferedBarColor: AppTheme.dividerDark.withOpacity(0.5),
                             thumbColor: AppTheme.primaryAccent,
                             thumbRadius: 7,
-                            timeLabelTextStyle: const TextStyle(
+                            timeLabelTextStyle: TextStyle(
                               color: AppTheme.textSecondary,
                               fontSize: 12,
                             ),

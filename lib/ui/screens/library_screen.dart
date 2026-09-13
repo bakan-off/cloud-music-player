@@ -79,7 +79,7 @@ class LibraryScreen extends ConsumerWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Поиск по названию или исполнителю...',
-                prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
+                prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textSecondary),
                 suffixIcon: libraryState.searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear_rounded, size: 20),
@@ -161,12 +161,12 @@ class LibraryScreen extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.auto_delete_rounded, color: AppTheme.dangerColor, size: 22),
+                  Icon(Icons.auto_delete_rounded, color: AppTheme.dangerColor, size: 22),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Треков с 1★: ${libraryState.oneStarCount}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -194,13 +194,13 @@ class LibraryScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Найдено: ${libraryState.filteredTracks.length}',
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                 ),
                 const Spacer(),
                 if (libraryState.filteredTracks.isNotEmpty)
                   TextButton.icon(
-                    icon: const Icon(Icons.shuffle_rounded, size: 18, color: AppTheme.primaryAccent),
-                    label: const Text(
+                    icon: Icon(Icons.shuffle_rounded, size: 18, color: AppTheme.primaryAccent),
+                    label: Text(
                       'Слушать на шаффле',
                       style: TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.w600),
                     ),
@@ -218,7 +218,7 @@ class LibraryScreen extends ConsumerWidget {
           // Track List
           Expanded(
             child: libraryState.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryAccent))
+                ? Center(child: CircularProgressIndicator(color: AppTheme.primaryAccent))
                 : libraryState.filteredTracks.isEmpty
                     ? _buildEmptyState(context, libraryState)
                     : ListView.builder(
@@ -316,14 +316,14 @@ class LibraryScreen extends ConsumerWidget {
                   track.artist,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
               ),
               if (track.isCached) ...[
                 const SizedBox(width: 4),
-                const Icon(Icons.check_circle_rounded, size: 13, color: AppTheme.successColor),
+                Icon(Icons.check_circle_rounded, size: 13, color: AppTheme.successColor),
                 const SizedBox(width: 2),
-                const Text('Кэш', style: TextStyle(fontSize: 10, color: AppTheme.successColor)),
+                Text('Кэш', style: TextStyle(fontSize: 10, color: AppTheme.successColor)),
               ],
             ],
           ),
@@ -339,7 +339,7 @@ class LibraryScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 4),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppTheme.textSecondary),
+                icon: Icon(Icons.more_vert_rounded, size: 20, color: AppTheme.textSecondary),
                 color: AppTheme.surfaceDark,
                 onSelected: (val) async {
                   if (val == 'cache') {
@@ -364,13 +364,13 @@ class LibraryScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
                         Icon(Icons.remove_circle_outline_rounded, size: 18, color: AppTheme.dangerColor),
-                        SizedBox(width: 10),
-                        Text('Удалить из медиатеки'),
+                        const SizedBox(width: 10),
+                        const Text('Удалить из медиатеки'),
                       ],
                     ),
                   ),
@@ -399,7 +399,7 @@ class LibraryScreen extends ConsumerWidget {
               state.searchQuery.isNotEmpty || state.ratingFilter != null
                   ? 'Ничего не найдено по фильтрам'
                   : 'Медиатека пуста',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -407,7 +407,7 @@ class LibraryScreen extends ConsumerWidget {
                   ? 'Попробуйте изменить поисковый запрос или сбросить фильтр звезд'
                   : 'Добавьте публичную ссылку на облако или откройте локальные треки во вкладке «Импорт»',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -419,11 +419,11 @@ class LibraryScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: AppTheme.dangerColor),
-            SizedBox(width: 10),
-            Text('Удаление 1★'),
+            const SizedBox(width: 10),
+            const Text('Удаление 1★'),
           ],
         ),
         content: Text(
@@ -434,7 +434,7 @@ class LibraryScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerColor),

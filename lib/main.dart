@@ -4,11 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/theme_provider.dart';
 import 'ui/screens/main_navigation_screen.dart';
 import 'ui/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load saved theme preference before running app
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final savedTheme = prefs.getString('app_theme_preset_key');
+    if (savedTheme != null) {
+      final matched = AppThemePreset.values.firstWhere(
+        (p) => p.name == savedTheme,
+        orElse: () => AppThemePreset.obsidian,
+      );
+      AppTheme.setPreset(matched);
+    }
+  } catch (_) {}
 
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
     sqfliteFfiInit();
@@ -31,16 +46,20 @@ void main() async {
   );
 }
 
-class CloudMusicPlayerApp extends StatelessWidget {
+class CloudMusicPlayerApp extends ConsumerWidget {
   const CloudMusicPlayerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentPreset = ref.watch(themeProvider);
+    final palette = AppTheme.getPalette(currentPreset);
+
     return MaterialApp(
       title: 'Cloud Music Player',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.buildThemeData(palette),
       home: const MainNavigationScreen(),
     );
   }
 }
+

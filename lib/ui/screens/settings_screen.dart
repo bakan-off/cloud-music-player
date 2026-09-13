@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/update/update_service.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   AppUpdateInfo? _updateInfo;
   File? _downloadedApk;
   String? _checkStatusMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-check on first open if never checked
+  }
 
   Future<void> _checkForUpdates() async {
     setState(() {
@@ -48,8 +55,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _startDownloadAndInstall(AppUpdateInfo info) async {
     if (info.apkDownloadUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('В релизе не найден установочный APK файл.'),
+        SnackBar(
+          content: const Text('В релизе не найден установочный APK файл.'),
           backgroundColor: AppTheme.dangerColor,
         ),
       );
@@ -179,6 +186,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
+          // Section: Themes
+          _buildSectionHeader('ОФОРМЛЕНИЕ И ТЕМЫ'),
+          _buildThemeCard(),
+
+          const SizedBox(height: 24),
+
           // Section: Updates
           _buildSectionHeader('ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ'),
           _buildUpdateCard(),
@@ -206,12 +219,110 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
           color: AppTheme.textSecondary,
         ),
+      ),
+    );
+  }
+
+  Widget _buildThemeCard() {
+    final currentPreset = ref.watch(themeProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.dividerDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Цветовая палитра',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Выберите визуальное оформление плеера',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...AppTheme.allPalettes.map((palette) {
+            final isSelected = palette.preset == currentPreset;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? palette.primaryColor.withValues(alpha: 0.12)
+                    : AppTheme.surfaceDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? palette.primaryColor : AppTheme.dividerDark,
+                  width: isSelected ? 1.5 : 1.0,
+                ),
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onTap: () {
+                  ref.read(themeProvider.notifier).setPreset(palette.preset);
+                },
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: palette.bgDark,
+                    border: Border.all(color: palette.primaryColor, width: 2),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: palette.primaryAccent,
+                      ),
+                    ),
+                  ),
+                ),
+                title: Text(
+                  palette.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? palette.primaryAccent : AppTheme.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  palette.description,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                trailing: isSelected
+                    ? Icon(
+                        Icons.check_circle_rounded,
+                        color: palette.primaryAccent,
+                        size: 22,
+                      )
+                    : null,
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -250,7 +361,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -261,7 +372,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppTheme.textSecondary,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'v${UpdateService.currentVersion}',
                       style: TextStyle(
@@ -330,7 +441,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Update available details block
           if (hasUpdate) ...[
             const SizedBox(height: 16),
-            const Divider(color: AppTheme.dividerDark),
+            Divider(color: AppTheme.dividerDark),
             const SizedBox(height: 12),
 
             Row(
@@ -341,7 +452,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: AppTheme.successColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                  child: Text(
                     'ДОСТУПНО ОБНОВЛЕНИЕ',
                     style: TextStyle(
                       fontSize: 11,
@@ -353,7 +464,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Spacer(),
                 Text(
                   'v${info.latestVersion}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryAccent,
@@ -366,7 +477,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 6),
               Text(
                 'Размер: ${info.formattedSize}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   color: AppTheme.textSecondary,
                 ),
@@ -385,7 +496,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 child: Text(
                   info.releaseNotes,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
                     color: AppTheme.textPrimary,
@@ -406,13 +517,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Скачивание обновления...',
                         style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                       ),
                       Text(
                         '${(_downloadProgress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryAccent,
@@ -434,7 +545,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   if (_totalBytes > 0)
                     Text(
                       '${(_downloadedBytes / (1024 * 1024)).toStringAsFixed(1)} / ${(_totalBytes / (1024 * 1024)).toStringAsFixed(1)} МБ',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                     ),
                 ],
               ),
@@ -496,7 +607,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: AppTheme.successColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.sd_storage_rounded,
                   color: AppTheme.successColor,
                   size: 24,
@@ -507,14 +618,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Оффлайн треки',
                       style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '$count треков • $size',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -532,7 +643,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.dangerColor,
-                  side: const BorderSide(color: AppTheme.dangerColor),
+                  side: BorderSide(color: AppTheme.dangerColor),
                 ),
                 onPressed: _clearAllCache,
                 icon: const Icon(Icons.delete_sweep_rounded, size: 18),
@@ -556,10 +667,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.music_video_rounded, color: AppTheme.primaryAccent, size: 28),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,7 +696,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Воспроизведение музыки напрямую из публичных папок Google Диска и Яндекс.Диска без подписок, ограничений и авторизации. Поддержка оффлайн-кэша, рейтингов 1–5 звезд и быстрой очистки.',
             style: TextStyle(
               fontSize: 13,
@@ -594,7 +705,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          const Divider(color: AppTheme.dividerDark),
+          Divider(color: AppTheme.dividerDark),
           const SizedBox(height: 10),
           InkWell(
             borderRadius: BorderRadius.circular(8),
@@ -603,8 +714,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const ClipboardData(text: UpdateService.githubRepoUrl),
               );
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Ссылка на GitHub скопирована в буфер обмена'),
+                SnackBar(
+                  content: const Text('Ссылка на GitHub скопирована в буфер обмена'),
                   backgroundColor: AppTheme.primaryAccent,
                 ),
               );
@@ -613,9 +724,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.code_rounded, size: 20, color: AppTheme.textSecondary),
+                  Icon(Icons.code_rounded, size: 20, color: AppTheme.textSecondary),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'github.com/bakan-off/cloud-music-player',
                       style: TextStyle(
@@ -633,8 +744,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const ClipboardData(text: UpdateService.githubRepoUrl),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Ссылка на GitHub скопирована'),
+                        SnackBar(
+                          content: const Text('Ссылка на GitHub скопирована'),
                           backgroundColor: AppTheme.primaryAccent,
                         ),
                       );

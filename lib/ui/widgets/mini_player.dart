@@ -65,7 +65,7 @@ class MiniPlayer extends ConsumerWidget {
                             value: progress,
                             minHeight: 2.5,
                             backgroundColor: Colors.transparent,
-                            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryAccent),
+                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryAccent),
                           ),
                         );
                       },
@@ -84,7 +84,7 @@ class MiniPlayer extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: AppTheme.dividerDark),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.music_note_rounded,
                               color: AppTheme.primaryAccent,
                               size: 24,
@@ -105,7 +105,7 @@ class MiniPlayer extends ConsumerWidget {
                                         track.title,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,
                                           color: AppTheme.textPrimary,
@@ -113,8 +113,8 @@ class MiniPlayer extends ConsumerWidget {
                                       ),
                                     ),
                                     if (track.isCached)
-                                      const Padding(
-                                        padding: EdgeInsets.only(left: 4.0),
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 4.0),
                                         child: Icon(
                                           Icons.check_circle_rounded,
                                           size: 14,
@@ -131,7 +131,7 @@ class MiniPlayer extends ConsumerWidget {
                                         track.artist,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
                                           color: AppTheme.textSecondary,
                                         ),
@@ -177,7 +177,7 @@ class MiniPlayer extends ConsumerWidget {
                             onPressed: () => audio.playOrPause(),
                           ),
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.skip_next_rounded,
                               size: 26,
                               color: AppTheme.textSecondary,

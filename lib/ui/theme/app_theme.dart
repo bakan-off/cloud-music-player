@@ -1,67 +1,200 @@
 import 'package:flutter/material.dart';
 
+enum AppThemePreset {
+  obsidian, // Electric Violet (Default)
+  midnight, // Ocean Blue
+  emerald,  // Emerald Mint
+  sunset,   // Amber Sunset
+  amoled,   // Pure OLED Black
+}
+
+class ThemePalette {
+  final AppThemePreset preset;
+  final String title;
+  final String description;
+  final Color primaryColor;
+  final Color primaryAccent;
+  final Color bgDark;
+  final Color surfaceDark;
+  final Color cardDark;
+  final Color dividerDark;
+  final Color starColor;
+  final Color dangerColor;
+  final Color successColor;
+  final Color textPrimary;
+  final Color textSecondary;
+
+  const ThemePalette({
+    required this.preset,
+    required this.title,
+    required this.description,
+    required this.primaryColor,
+    required this.primaryAccent,
+    required this.bgDark,
+    required this.surfaceDark,
+    required this.cardDark,
+    required this.dividerDark,
+    this.starColor = const Color(0xFFFBBF24),
+    this.dangerColor = const Color(0xFFEF4444),
+    this.successColor = const Color(0xFF10B981),
+    this.textPrimary = const Color(0xFFF8FAFC),
+    this.textSecondary = const Color(0xFF94A3B8),
+  });
+}
+
 class AppTheme {
-  static const primaryColor = Color(0xFF8B5CF6);      // Electric Violet
-  static const primaryAccent = Color(0xFFA78BFA);     // Light Violet
-  static const starColor = Color(0xFFFBBF24);         // Warm Amber Gold
-  static const dangerColor = Color(0xFFEF4444);       // Red for 1-star cleanup
-  static const successColor = Color(0xFF10B981);      // Emerald Green for cached
+  static const obsidianPalette = ThemePalette(
+    preset: AppThemePreset.obsidian,
+    title: 'Фиолетовый обсидиан',
+    description: 'Глубокий темный стиль с неоново-фиолетовыми акцентами',
+    primaryColor: Color(0xFF8B5CF6),
+    primaryAccent: Color(0xFFA78BFA),
+    bgDark: Color(0xFF0C0F17),
+    surfaceDark: Color(0xFF141924),
+    cardDark: Color(0xFF1C2232),
+    dividerDark: Color(0xFF273142),
+  );
 
-  static const bgDark = Color(0xFF0C0F17);            // Deep Obsidian
-  static const surfaceDark = Color(0xFF141924);       // Elevated Surface
-  static const cardDark = Color(0xFF1C2232);          // Cards & Tiles
-  static const textPrimary = Color(0xFFF8FAFC);
-  static const textSecondary = Color(0xFF94A3B8);
-  static const dividerDark = Color(0xFF273142);
+  static const midnightPalette = ThemePalette(
+    preset: AppThemePreset.midnight,
+    title: 'Полуночный океан',
+    description: 'Сапфировый космический стиль с лазурным свечением',
+    primaryColor: Color(0xFF3B82F6),
+    primaryAccent: Color(0xFF60A5FA),
+    bgDark: Color(0xFF070D1E),
+    surfaceDark: Color(0xFF0E172F),
+    cardDark: Color(0xFF162344),
+    dividerDark: Color(0xFF213360),
+  );
 
-  static ThemeData get darkTheme {
+  static const emeraldPalette = ThemePalette(
+    preset: AppThemePreset.emerald,
+    title: 'Изумрудный киберпанк',
+    description: 'Свежий природный стиль с изумрудными и мятными тонами',
+    primaryColor: Color(0xFF10B981),
+    primaryAccent: Color(0xFF34D399),
+    bgDark: Color(0xFF071510),
+    surfaceDark: Color(0xFF0D221A),
+    cardDark: Color(0xFF133126),
+    dividerDark: Color(0xFF1D4637),
+  );
+
+  static const sunsetPalette = ThemePalette(
+    preset: AppThemePreset.sunset,
+    title: 'Закатный янтарь',
+    description: 'Теплая ламповая гамма в золотых и кофейных тонах',
+    primaryColor: Color(0xFFF59E0B),
+    primaryAccent: Color(0xFFFBBF24),
+    bgDark: Color(0xFF150F0A),
+    surfaceDark: Color(0xFF20160F),
+    cardDark: Color(0xFF2C1E15),
+    dividerDark: Color(0xFF3E2B1E),
+  );
+
+  static const amoledPalette = ThemePalette(
+    preset: AppThemePreset.amoled,
+    title: 'AMOLED Черный',
+    description: '100% черный фон для максимальной экономии батареи на OLED',
+    primaryColor: Color(0xFFA855F7),
+    primaryAccent: Color(0xFFC084FC),
+    bgDark: Color(0xFF000000),
+    surfaceDark: Color(0xFF0A0A0A),
+    cardDark: Color(0xFF141414),
+    dividerDark: Color(0xFF222222),
+  );
+
+  static const List<ThemePalette> allPalettes = [
+    obsidianPalette,
+    midnightPalette,
+    emeraldPalette,
+    sunsetPalette,
+    amoledPalette,
+  ];
+
+  static ThemePalette currentPalette = obsidianPalette;
+
+  static void setPreset(AppThemePreset preset) {
+    currentPalette = getPalette(preset);
+  }
+
+  static ThemePalette getPalette(AppThemePreset preset) {
+    switch (preset) {
+      case AppThemePreset.obsidian:
+        return obsidianPalette;
+      case AppThemePreset.midnight:
+        return midnightPalette;
+      case AppThemePreset.emerald:
+        return emeraldPalette;
+      case AppThemePreset.sunset:
+        return sunsetPalette;
+      case AppThemePreset.amoled:
+        return amoledPalette;
+    }
+  }
+
+  // Dynamic getters forwarding to currentPalette
+  static Color get primaryColor => currentPalette.primaryColor;
+  static Color get primaryAccent => currentPalette.primaryAccent;
+  static Color get starColor => currentPalette.starColor;
+  static Color get dangerColor => currentPalette.dangerColor;
+  static Color get successColor => currentPalette.successColor;
+  static Color get bgDark => currentPalette.bgDark;
+  static Color get surfaceDark => currentPalette.surfaceDark;
+  static Color get cardDark => currentPalette.cardDark;
+  static Color get textPrimary => currentPalette.textPrimary;
+  static Color get textSecondary => currentPalette.textSecondary;
+  static Color get dividerDark => currentPalette.dividerDark;
+
+  static ThemeData get darkTheme => buildThemeData(currentPalette);
+
+  static ThemeData buildThemeData(ThemePalette palette) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: bgDark,
-      colorScheme: const ColorScheme.dark(
-        primary: primaryColor,
-        secondary: primaryAccent,
-        surface: surfaceDark,
-        error: dangerColor,
+      scaffoldBackgroundColor: palette.bgDark,
+      colorScheme: ColorScheme.dark(
+        primary: palette.primaryColor,
+        secondary: palette.primaryAccent,
+        surface: palette.surfaceDark,
+        error: palette.dangerColor,
         onPrimary: Colors.white,
-        onSurface: textPrimary,
+        onSurface: palette.textPrimary,
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: bgDark,
+      appBarTheme: AppBarTheme(
+        backgroundColor: palette.bgDark,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: palette.textPrimary,
           fontSize: 22,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
         ),
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: IconThemeData(color: palette.textPrimary),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surfaceDark,
-        selectedItemColor: primaryAccent,
-        unselectedItemColor: textSecondary,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: palette.surfaceDark,
+        selectedItemColor: palette.primaryAccent,
+        unselectedItemColor: palette.textSecondary,
         type: BottomNavigationBarType.fixed,
         elevation: 12,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
       ),
       cardTheme: CardThemeData(
-        color: cardDark,
+        color: palette.cardDark,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: dividerDark, width: 0.8),
+          side: BorderSide(color: palette.dividerDark, width: 0.8),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: surfaceDark,
+        backgroundColor: palette.surfaceDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
+          backgroundColor: palette.primaryColor,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -71,19 +204,19 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: cardDark,
-        hintStyle: const TextStyle(color: textSecondary, fontSize: 14),
+        fillColor: palette.cardDark,
+        hintStyle: TextStyle(color: palette.textSecondary, fontSize: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: dividerDark),
+          borderSide: BorderSide(color: palette.dividerDark),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: dividerDark),
+          borderSide: BorderSide(color: palette.dividerDark),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primaryAccent, width: 1.5),
+          borderSide: BorderSide(color: palette.primaryAccent, width: 1.5),
         ),
       ),
     );
