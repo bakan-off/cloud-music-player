@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,22 +32,25 @@ class VoiceNotifier {
 
   Future<void> playNoSignal() async {
     if (!_isEnabled || _isPlaying) return;
-    try {
-      _isPlaying = true;
-      await _audioPlayer.setAsset('assets/audio/no_signal.wav');
-      await _audioPlayer.play();
-    } catch (_) {
-    } finally {
-      _isPlaying = false;
-    }
+    await _playAssetWithWait('assets/audio/no_signal.wav');
   }
 
   Future<void> playSignalRestored() async {
     if (!_isEnabled || _isPlaying) return;
+    await _playAssetWithWait('assets/audio/signal_restored.wav');
+  }
+
+  Future<void> _playAssetWithWait(String assetPath) async {
     try {
       _isPlaying = true;
-      await _audioPlayer.setAsset('assets/audio/signal_restored.wav');
+      await _audioPlayer.stop();
+      await _audioPlayer.setAsset(assetPath);
+      await _audioPlayer.setVolume(1.0);
       await _audioPlayer.play();
+      // Wait until playback completes (or max 3s timeout)
+      await _audioPlayer.playerStateStream
+          .firstWhere((s) => s.processingState == ProcessingState.completed)
+          .timeout(const Duration(seconds: 3), onTimeout: () => _audioPlayer.playerState);
     } catch (_) {
     } finally {
       _isPlaying = false;

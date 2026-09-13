@@ -1,4 +1,5 @@
-﻿import 'dart:async';
+import 'dart:async';
+import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class NetworkMonitor {
@@ -61,6 +62,32 @@ class NetworkMonitor {
       return _isOnline;
     } catch (_) {
       return _isOnline;
+    }
+  }
+
+  Future<bool> hasActualInternet() async {
+    try {
+      final results = await _connectivity.checkConnectivity();
+      if (!_checkIsConnected(results)) {
+        _isOnline = false;
+        return false;
+      }
+      final lookup = await InternetAddress.lookup('clients3.google.com')
+          .timeout(const Duration(milliseconds: 2000));
+      final success = lookup.isNotEmpty && lookup[0].rawAddress.isNotEmpty;
+      _isOnline = success;
+      return success;
+    } catch (_) {
+      try {
+        final lookup2 = await InternetAddress.lookup('yandex.ru')
+            .timeout(const Duration(milliseconds: 2000));
+        final success = lookup2.isNotEmpty && lookup2[0].rawAddress.isNotEmpty;
+        _isOnline = success;
+        return success;
+      } catch (_) {
+        _isOnline = false;
+        return false;
+      }
     }
   }
 

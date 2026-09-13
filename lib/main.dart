@@ -33,7 +33,7 @@ void main() async {
       androidNotificationChannelId: 'com.personal.cloudplayer.audio',
       androidNotificationChannelName: 'Cloud Player',
       androidNotificationOngoing: false,
-      androidStopForegroundOnPause: true,
+      androidStopForegroundOnPause: false,
       androidNotificationIcon: 'mipmap/ic_launcher',
       notificationColor: const Color(0xFF8B5CF6),
     );

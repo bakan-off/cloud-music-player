@@ -38,7 +38,7 @@ class UpdateService {
   static final UpdateService instance = UpdateService._internal();
   UpdateService._internal();
 
-  static const String currentVersion = '1.0.4';
+  static const String currentVersion = '1.0.5';
   static const String repoOwner = 'bakan-off';
   static const String repoName = 'cloud-music-player';
   static const String githubRepoUrl = 'https://github.com/$repoOwner/$repoName';
