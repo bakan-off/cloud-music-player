@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:audio_session/audio_session.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../models/track.dart';
@@ -18,6 +20,9 @@ class AudioManager {
 
   final AudioPlayer _player = AudioPlayer();
   AudioPlayer get player => _player;
+
+  ConcatenatingAudioSource? _playlist;
+  ConcatenatingAudioSource? get playlist => _playlist;
 
   final List<Track> _originalQueue = [];
   final List<Track> _playbackQueue = [];
@@ -48,7 +53,23 @@ class AudioManager {
   PlayerRepeatMode get repeatMode => _repeatMode;
   List<Track> get queue => List.unmodifiable(_playbackQueue);
 
-  void _initAudioPlayer() {
+  Future<void> _initAudioPlayer() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+    } catch (_) {}
+
+    _player.currentIndexStream.listen((index) {
+      if (index != null &&
+          index >= 0 &&
+          index < _playbackQueue.length &&
+          index != _currentIndex) {
+        _currentIndex = index;
+        final track = _playbackQueue[_currentIndex];
+        _currentTrackController.add(track);
+      }
+    });
+
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         _handleTrackCompleted();
@@ -77,6 +98,64 @@ class AudioManager {
     return _currentIndex > 0 || _repeatMode == PlayerRepeatMode.all;
   }
 
+  AudioSource _buildAudioSource(Track track) {
+    final mediaItem = MediaItem(
+      id: track.id,
+      album: track.album?.isNotEmpty == true ? track.album! : 'Cloud Player',
+      title: track.title,
+      artist: track.artist.isNotEmpty ? track.artist : 'Cloud Music',
+      duration: track.durationMs > 0 ? Duration(milliseconds: track.durationMs) : null,
+    );
+
+    if (track.isCached &&
+        track.localCachePath != null &&
+        File(track.localCachePath!).existsSync()) {
+      return AudioSource.file(
+        track.localCachePath!,
+        tag: mediaItem,
+      );
+    } else {
+      return AudioSource.uri(
+        Uri.parse(track.streamUrl),
+        tag: mediaItem,
+      );
+    }
+  }
+
+  Future<void> _loadPlaylistAndPlay({
+    required int initialIndex,
+    Duration initialPosition = Duration.zero,
+    bool play = true,
+  }) async {
+    if (_playbackQueue.isEmpty) return;
+    _currentIndex = initialIndex.clamp(0, _playbackQueue.length - 1);
+    final track = _playbackQueue[_currentIndex];
+    _currentTrackController.add(track);
+
+    _playlist = ConcatenatingAudioSource(
+      children: _playbackQueue.map(_buildAudioSource).toList(),
+      useLazyPreparation: true,
+    );
+
+    try {
+      await _player.setAudioSource(
+        _playlist!,
+        initialIndex: _currentIndex,
+        initialPosition: initialPosition,
+      );
+      _syncLoopMode();
+      if (play) {
+        await _player.play();
+      }
+    } catch (e) {
+      if (play) {
+        try {
+          await _player.play();
+        } catch (_) {}
+      }
+    }
+  }
+
   /// Sets a new queue and plays the track at [startIndex]
   Future<void> setQueue(List<Track> tracks, {int startIndex = 0}) async {
     _originalQueue.clear();
@@ -92,7 +171,7 @@ class AudioManager {
 
     _queueController.add(_playbackQueue);
     if (_playbackQueue.isNotEmpty && _currentIndex >= 0) {
-      await playTrackAtIndex(_currentIndex);
+      await _loadPlaylistAndPlay(initialIndex: _currentIndex);
     }
   }
 
@@ -102,22 +181,15 @@ class AudioManager {
     final track = _playbackQueue[_currentIndex];
     _currentTrackController.add(track);
 
-    try {
-      if (track.isCached) {
-        await _player.setFilePath(track.localCachePath!);
-      } else {
-        await _player.setUrl(track.streamUrl);
-      }
-      await _player.play();
-    } catch (e) {
-      // If cached file was moved/deleted or stream failed, try alternative
-      if (track.isCached && track.streamUrl.isNotEmpty) {
-        try {
-          await _player.setUrl(track.streamUrl);
-          await _player.play();
-        } catch (_) {}
-      }
+    if (_playlist != null && _playlist!.length == _playbackQueue.length) {
+      try {
+        await _player.seek(Duration.zero, index: index);
+        await _player.play();
+        return;
+      } catch (_) {}
     }
+
+    await _loadPlaylistAndPlay(initialIndex: index);
   }
 
   Future<void> playOrPause() async {
@@ -134,15 +206,13 @@ class AudioManager {
 
   Future<void> skipToNext() async {
     if (_playbackQueue.isEmpty) return;
-    var nextIndex = _currentIndex + 1;
-    if (nextIndex >= _playbackQueue.length) {
-      if (_repeatMode == PlayerRepeatMode.all) {
-        nextIndex = 0;
-      } else {
-        return;
-      }
+    if (_player.hasNext) {
+      await _player.seekToNext();
+      await _player.play();
+    } else if (_repeatMode == PlayerRepeatMode.all) {
+      await _player.seek(Duration.zero, index: 0);
+      await _player.play();
     }
-    await playTrackAtIndex(nextIndex);
   }
 
   Future<void> skipToPrevious() async {
@@ -154,20 +224,20 @@ class AudioManager {
       return;
     }
 
-    var prevIndex = _currentIndex - 1;
-    if (prevIndex < 0) {
-      if (_repeatMode == PlayerRepeatMode.all) {
-        prevIndex = _playbackQueue.length - 1;
-      } else {
-        prevIndex = 0;
-      }
+    if (_player.hasPrevious) {
+      await _player.seekToPrevious();
+      await _player.play();
+    } else if (_repeatMode == PlayerRepeatMode.all) {
+      await _player.seek(Duration.zero, index: _playbackQueue.length - 1);
+      await _player.play();
     }
-    await playTrackAtIndex(prevIndex);
   }
 
   Future<void> toggleShuffle() async {
     _isShuffle = !_isShuffle;
     final curTrack = currentTrack;
+    final isPlaying = _player.playing;
+    final currentPos = _player.position;
 
     if (_isShuffle) {
       _applyShuffle(currentTrack: curTrack);
@@ -182,6 +252,14 @@ class AudioManager {
 
     _isShuffleController.add(_isShuffle);
     _queueController.add(_playbackQueue);
+
+    if (_playbackQueue.isNotEmpty) {
+      await _loadPlaylistAndPlay(
+        initialIndex: _currentIndex,
+        initialPosition: currentPos,
+        play: isPlaying,
+      );
+    }
   }
 
   void _applyShuffle({int startIndex = 0, Track? currentTrack}) {
@@ -200,6 +278,20 @@ class AudioManager {
     }
   }
 
+  void _syncLoopMode() {
+    switch (_repeatMode) {
+      case PlayerRepeatMode.off:
+        _player.setLoopMode(LoopMode.off);
+        break;
+      case PlayerRepeatMode.all:
+        _player.setLoopMode(LoopMode.all);
+        break;
+      case PlayerRepeatMode.one:
+        _player.setLoopMode(LoopMode.one);
+        break;
+    }
+  }
+
   void toggleRepeatMode() {
     switch (_repeatMode) {
       case PlayerRepeatMode.off:
@@ -212,6 +304,7 @@ class AudioManager {
         _repeatMode = PlayerRepeatMode.off;
         break;
     }
+    _syncLoopMode();
     _repeatModeController.add(_repeatMode);
   }
 
@@ -289,6 +382,14 @@ class AudioManager {
       if (currentTrack?.id == track.id) {
         _currentTrackController.add(updated);
       }
+
+      final idx = _playbackQueue.indexWhere((t) => t.id == track.id);
+      if (idx != -1 && _playlist != null && idx < _playlist!.length && idx != _currentIndex) {
+        try {
+          await _playlist!.removeAt(idx);
+          await _playlist!.insert(idx, _buildAudioSource(updated));
+        } catch (_) {}
+      }
     } catch (e) {
       _downloadingProgress.remove(trackId);
       _downloadProgressController.add(Map.from(_downloadingProgress));
@@ -313,26 +414,40 @@ class AudioManager {
     if (currentTrack?.id == track.id) {
       _currentTrackController.add(updated);
     }
+
+    final idx = _playbackQueue.indexWhere((t) => t.id == track.id);
+    if (idx != -1 && _playlist != null && idx < _playlist!.length && idx != _currentIndex) {
+      try {
+        await _playlist!.removeAt(idx);
+        await _playlist!.insert(idx, _buildAudioSource(updated));
+      } catch (_) {}
+    }
   }
 
   /// Removes tracks from queues (e.g. when 1-star tracks are deleted)
-  void removeTracks(List<String> trackIds) {
+  Future<void> removeTracks(List<String> trackIds) async {
     final idsSet = trackIds.toSet();
     final wasPlayingDeleted = currentTrack != null && idsSet.contains(currentTrack!.id);
 
     _originalQueue.removeWhere((t) => idsSet.contains(t.id));
     _playbackQueue.removeWhere((t) => idsSet.contains(t.id));
 
-    if (wasPlayingDeleted) {
-      if (_playbackQueue.isNotEmpty) {
-        playTrackAtIndex(0);
-      } else {
-        _player.stop();
-        _currentIndex = -1;
-        _currentTrackController.add(null);
+    if (_playbackQueue.isEmpty) {
+      await _player.stop();
+      _playlist = null;
+      _currentIndex = -1;
+      _currentTrackController.add(null);
+    } else if (wasPlayingDeleted) {
+      await _loadPlaylistAndPlay(initialIndex: 0);
+    } else {
+      if (currentTrack != null) {
+        _currentIndex = _playbackQueue.indexWhere((t) => t.id == currentTrack!.id);
       }
-    } else if (currentTrack != null) {
-      _currentIndex = _playbackQueue.indexWhere((t) => t.id == currentTrack!.id);
+      await _loadPlaylistAndPlay(
+        initialIndex: _currentIndex.clamp(0, _playbackQueue.length - 1),
+        initialPosition: _player.position,
+        play: _player.playing,
+      );
     }
 
     _queueController.add(_playbackQueue);
