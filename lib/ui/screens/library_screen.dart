@@ -6,6 +6,7 @@ import '../../models/track.dart';
 import '../../providers/library_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/star_rating_bar.dart';
+import 'settings_screen.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -56,6 +57,16 @@ class LibraryScreen extends ConsumerWidget {
               } else {
                 await notifier.loadTracks();
               }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Настройки',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
             },
           ),
         ],

@@ -4,6 +4,7 @@ import '../widgets/mini_player.dart';
 import 'cached_screen.dart';
 import 'import_screen.dart';
 import 'library_screen.dart';
+import 'settings_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -19,6 +20,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     LibraryScreen(),
     CachedScreen(),
     ImportScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -34,6 +36,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           const MiniPlayer(),
           BottomNavigationBar(
             currentIndex: _currentIndex,
+            type: BottomNavigationBarType.fixed,
             onTap: (index) {
               setState(() {
                 _currentIndex = index;
@@ -54,6 +57,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 icon: Icon(Icons.add_circle_outline_rounded),
                 activeIcon: Icon(Icons.add_circle_rounded, color: AppTheme.primaryAccent),
                 label: 'Добавить',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined),
+                activeIcon: Icon(Icons.settings_rounded, color: AppTheme.primaryAccent),
+                label: 'Настройки',
               ),
             ],
           ),
