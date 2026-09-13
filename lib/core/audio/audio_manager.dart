@@ -8,7 +8,9 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../models/track.dart';
+import '../network/network_monitor.dart';
 import '../storage/db_helper.dart';
+import 'voice_notifier.dart';
 
 enum PlayerRepeatMode { off, all, one }
 
@@ -30,6 +32,14 @@ class AudioManager {
 
   bool _isShuffle = false;
   PlayerRepeatMode _repeatMode = PlayerRepeatMode.off;
+
+  // Network interruption & voice alert tracking
+  bool _pausedByNetworkLoss = false;
+  Duration _interruptedPosition = Duration.zero;
+  int _interruptedIndex = -1;
+  final _waitingForNetworkController = StreamController<bool>.broadcast();
+  Stream<bool> get waitingForNetworkStream => _waitingForNetworkController.stream;
+  bool get isWaitingForNetwork => _pausedByNetworkLoss;
 
   final _currentTrackController = StreamController<Track?>.broadcast();
   final _queueController = StreamController<List<Track>>.broadcast();
@@ -70,11 +80,95 @@ class AudioManager {
       }
     });
 
+    Timer? bufferingTimer;
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         _handleTrackCompleted();
+      } else if (state.processingState == ProcessingState.buffering) {
+        bufferingTimer?.cancel();
+        bufferingTimer = Timer(const Duration(seconds: 4), () async {
+          final isOnline = await NetworkMonitor.instance.checkConnection();
+          if (!isOnline) {
+            _handleNetworkLost();
+          }
+        });
+      } else {
+        bufferingTimer?.cancel();
       }
     });
+
+    _player.playbackEventStream.listen(
+      (event) {},
+      onError: (e) async {
+        final isOnline = await NetworkMonitor.instance.checkConnection();
+        if (!isOnline) {
+          _handleNetworkLost();
+        }
+      },
+    );
+
+    NetworkMonitor.instance.onConnectionLost.listen((_) {
+      _handleNetworkLost();
+    });
+
+    NetworkMonitor.instance.onConnectionRestored.listen((_) {
+      _handleNetworkRestored();
+    });
+  }
+
+  Future<void> _handleNetworkLost() async {
+    final track = currentTrack;
+    if (track == null) return;
+    // Do not interrupt offline cached tracks!
+    if (track.isCached &&
+        track.localCachePath != null &&
+        File(track.localCachePath!).existsSync()) {
+      return;
+    }
+
+    if (_player.playing && !_pausedByNetworkLoss) {
+      _pausedByNetworkLoss = true;
+      _interruptedPosition = _player.position;
+      _interruptedIndex = _currentIndex;
+      _waitingForNetworkController.add(true);
+      await _player.pause();
+      await VoiceNotifier.instance.playNoSignal();
+    }
+  }
+
+  Future<void> _handleNetworkRestored() async {
+    if (!_pausedByNetworkLoss) return;
+
+    await VoiceNotifier.instance.playSignalRestored();
+    _waitingForNetworkController.add(false);
+
+    if (_playbackQueue.isNotEmpty &&
+        _interruptedIndex >= 0 &&
+        _interruptedIndex < _playbackQueue.length) {
+      final savedPos = _interruptedPosition;
+      final savedIdx = _interruptedIndex;
+      _pausedByNetworkLoss = false;
+
+      // Allow voice notification to be heard clearly before music starts
+      await Future.delayed(const Duration(milliseconds: 700));
+
+      try {
+        await _loadPlaylistAndPlay(
+          initialIndex: savedIdx,
+          initialPosition: savedPos,
+          play: true,
+        );
+      } catch (e) {
+        await Future.delayed(const Duration(seconds: 1));
+        await _loadPlaylistAndPlay(
+          initialIndex: savedIdx,
+          initialPosition: savedPos,
+          play: true,
+        );
+      }
+    } else {
+      _pausedByNetworkLoss = false;
+    }
   }
 
   void _handleTrackCompleted() {
@@ -158,6 +252,8 @@ class AudioManager {
 
   /// Sets a new queue and plays the track at [startIndex]
   Future<void> setQueue(List<Track> tracks, {int startIndex = 0}) async {
+    _pausedByNetworkLoss = false;
+    _waitingForNetworkController.add(false);
     _originalQueue.clear();
     _originalQueue.addAll(tracks);
     _playbackQueue.clear();
@@ -177,6 +273,8 @@ class AudioManager {
 
   Future<void> playTrackAtIndex(int index) async {
     if (index < 0 || index >= _playbackQueue.length) return;
+    _pausedByNetworkLoss = false;
+    _waitingForNetworkController.add(false);
     _currentIndex = index;
     final track = _playbackQueue[_currentIndex];
     _currentTrackController.add(track);
@@ -193,6 +291,10 @@ class AudioManager {
   }
 
   Future<void> playOrPause() async {
+    if (_pausedByNetworkLoss) {
+      _pausedByNetworkLoss = false;
+      _waitingForNetworkController.add(false);
+    }
     if (_player.playing) {
       await _player.pause();
     } else {
@@ -206,6 +308,8 @@ class AudioManager {
 
   Future<void> skipToNext() async {
     if (_playbackQueue.isEmpty) return;
+    _pausedByNetworkLoss = false;
+    _waitingForNetworkController.add(false);
     if (_player.hasNext) {
       await _player.seekToNext();
       await _player.play();
@@ -217,6 +321,8 @@ class AudioManager {
 
   Future<void> skipToPrevious() async {
     if (_playbackQueue.isEmpty) return;
+    _pausedByNetworkLoss = false;
+    _waitingForNetworkController.add(false);
 
     // If played more than 3 seconds, restart current track
     if (_player.position.inSeconds > 3) {

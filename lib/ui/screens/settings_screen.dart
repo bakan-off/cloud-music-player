@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/audio/audio_manager.dart';
+import '../../core/audio/voice_notifier.dart';
 import '../../core/update/update_service.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -18,6 +19,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isChecking = false;
   bool _isDownloading = false;
+  bool _voiceAlertsEnabled = true;
   double _downloadProgress = 0.0;
   int _downloadedBytes = 0;
   int _totalBytes = 0;
@@ -28,7 +30,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto-check on first open if never checked
+    _voiceAlertsEnabled = VoiceNotifier.instance.isEnabled;
   }
 
   Future<void> _checkForUpdates() async {
@@ -192,6 +194,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 24),
 
+          // Section: Network & Voice Alerts
+          _buildSectionHeader('СЕТЬ И ОПОВЕЩЕНИЯ'),
+          _buildNetworkVoiceAlertCard(),
+
+          const SizedBox(height: 24),
+
           // Section: Updates
           _buildSectionHeader('ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ'),
           _buildUpdateCard(),
@@ -225,6 +233,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           letterSpacing: 1.2,
           color: AppTheme.textSecondary,
         ),
+      ),
+    );
+  }
+
+  Widget _buildNetworkVoiceAlertCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.dividerDark),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.record_voice_over_rounded,
+              color: AppTheme.primaryAccent,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Голос при потере связи',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Озвучивать "Нет сигнала" и "Есть сигнал" при обрыве Wi-Fi и автоматически продолжать стрим',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: _voiceAlertsEnabled,
+            activeTrackColor: AppTheme.primaryAccent,
+            onChanged: (val) async {
+              setState(() {
+                _voiceAlertsEnabled = val;
+              });
+              await VoiceNotifier.instance.setEnabled(val);
+            },
+          ),
+        ],
       ),
     );
   }

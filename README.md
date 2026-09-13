@@ -5,12 +5,12 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.41+-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.11+-0175C2?logo=dart&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-Ready-3DDC84?logo=android&logoColor=white)
-![Release](https://img.shields.io/badge/Release-v1.0.3-success?logo=github)
+![Release](https://img.shields.io/badge/Release-v1.0.4-success?logo=github)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ## 📥 Скачать приложение
 
-👉 **[Скачать cloud-music-player-v1.0.3.apk](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.3/cloud-music-player-v1.0.3.apk)**
+👉 **[Скачать cloud-music-player-v1.0.4.apk](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.4/cloud-music-player-v1.0.4.apk)**
 
 Все релизы доступны на странице: [GitHub Releases](https://github.com/bakan-off/cloud-music-player/releases)
 
@@ -18,6 +18,7 @@
 
 ## 🌟 Ключевые особенности
 
+- 📡 **Голосовые уведомления о сети и умное автовозобновление:** при выходе из зоны Wi-Fi во время стриминга облачной музыки плеер бережно встает на паузу, фиксирует секунду и четко произносит **«Нет сигнала»**. При возвращении в сеть звучит **«Есть сигнал»**, и трек мгновенно продолжает играть с того же места! Оффлайн-треки играют непрерывно.
 - 🎨 **5 визуальных тем оформления:** Фиолетовый обсидиан, Полуночный океан, Изумрудный киберпанк, Закатный янтарь и AMOLED Черный с мгновенным переключением и сохранением выбора.
 - 🔄 **Автоматическое обновление внутри приложения:** проверка новых релизов с GitHub в Настройках, скачивание с прогресс-баром и запуск установки в один клик.
 - 📱 **Фоновое воспроизведение и системный мини-плеер:** музыка не засыпает при выключенном экране; управление из шторки уведомлений и экрана блокировки.
@@ -32,27 +33,51 @@
 
 ---
 
+## 🔄 Архитектура обработки сигнала сети и автовозобновления
+
+```mermaid
+flowchart TD
+    A[Потеря сигнала Wi-Fi] --> B{Играет ли трек?}
+    B -- Нет --> C[Ничего не делать]
+    B -- Да --> D{Трек из кэша (оффлайн)?}
+    D -- Да --> E[Продолжать играть файл с диска]
+    D -- Нет (Стриминг) --> F[Сохранить позицию и трек]
+    F --> G[Поставить на паузу]
+    G --> H[Голосовое уведомление: 'Нет сигнала']
+    
+    I[Возврат в зону Wi-Fi] --> J{Было ли прерывание связи?}
+    J -- Нет --> K[Ничего не делать]
+    J -- Да --> L[Голосовое уведомление: 'Есть сигнал']
+    L --> M[Переподключить аудиопоток с сохраненной позиции]
+    M --> N[Продолжить воспроизведение]
+```
+
+---
+
 ## 🚀 Архитектура проекта
 
 ```
 lib/
 ├── core/
-│   ├── audio/           # just_audio плеер, очередь, честный shuffle, кэширование
+│   ├── audio/           # just_audio плеер, очередь, честный shuffle, голосовой нотификатор
+│   ├── network/         # Мониторинг подключения (Wi-Fi/сотовая сеть)
 │   ├── cloud/           # Парсер открытых папок Google Диска (embedded view) и Яндекс.Диска
 │   └── storage/         # SQLite база данных (sqflite / sqflite_common_ffi для Desktop)
 ├── models/
 │   └── track.dart       # Модель трека (метаданные, стрим-ссылка, кэш, рейтинг 1-5)
 ├── providers/
-│   └── library_provider.dart # Управление состоянием (Riverpod, синхронизация с облаком)
+│   ├── library_provider.dart # Управление состоянием (Riverpod, синхронизация с облаком)
+│   └── theme_provider.dart   # Управление темами и персистентность
 ├── ui/
 │   ├── screens/
 │   │   ├── main_navigation_screen.dart # Навигация и плавающий мини-плеер
 │   │   ├── library_screen.dart         # Медиатека, фильтры звезд, очистка 1★
 │   │   ├── cached_screen.dart          # Оффлайн-хранилище треков
 │   │   ├── import_screen.dart          # Подключение облака и синхронизация
+│   │   ├── settings_screen.dart        # Темы, оповещения о сети, автообновление
 │   │   └── player_screen.dart          # Полноэкранный плеер с винилом и рейтингом
 │   ├── theme/
-│   │   └── app_theme.dart              # Темная тема Obsidian Dark
+│   │   └── app_theme.dart              # 5 тем оформления
 │   └── widgets/
 │       ├── mini_player.dart            # Плавающий компактный мини-плеер
 │       └── star_rating_bar.dart        # Интерактивные 5 звезд

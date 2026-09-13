@@ -124,44 +124,68 @@ class MiniPlayer extends ConsumerWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        track.artist,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                    if (track.rating > 0)
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
+                                StreamBuilder<bool>(
+                                  stream: audio.waitingForNetworkStream,
+                                  initialData: audio.isWaitingForNetwork,
+                                  builder: (context, waitingSnap) {
+                                    final isWaiting = waitingSnap.data ?? false;
+                                    if (isWaiting) {
+                                      return Row(
                                         children: [
-                                          Icon(
-                                            Icons.star_rounded,
-                                            size: 14,
-                                            color: track.rating == 1
-                                                ? AppTheme.dangerColor
-                                                : AppTheme.starColor,
-                                          ),
-                                          const SizedBox(width: 2),
+                                          Icon(Icons.wifi_off_rounded, size: 13, color: AppTheme.dangerColor),
+                                          const SizedBox(width: 4),
                                           Text(
-                                            '${track.rating}',
+                                            'Ожидание сигнала сети...',
                                             style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: track.rating == 1
-                                                  ? AppTheme.dangerColor
-                                                  : AppTheme.starColor,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.dangerColor,
                                             ),
                                           ),
                                         ],
-                                      ),
-                                  ],
+                                      );
+                                    }
+
+                                    return Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            track.artist,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                        if (track.rating > 0)
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.star_rounded,
+                                                size: 14,
+                                                color: track.rating == 1
+                                                    ? AppTheme.dangerColor
+                                                    : AppTheme.starColor,
+                                              ),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                '${track.rating}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: track.rating == 1
+                                                      ? AppTheme.dangerColor
+                                                      : AppTheme.starColor,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ],
                             ),
