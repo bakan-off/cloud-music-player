@@ -163,7 +163,7 @@ class CachedScreen extends ConsumerWidget {
                               track.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: AppTheme.getTrackTitleStyle(
                                 fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
                                 color: isCurrent ? AppTheme.primaryAccent : AppTheme.textPrimary,
                               ),
@@ -172,7 +172,7 @@ class CachedScreen extends ConsumerWidget {
                               '${track.artist} • ${track.formattedSize}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                              style: AppTheme.getTrackArtistStyle(fontSize: 12, color: AppTheme.textSecondary),
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,

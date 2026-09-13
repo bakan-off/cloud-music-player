@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/font_provider.dart';
 import 'providers/theme_provider.dart';
 import 'ui/screens/main_navigation_screen.dart';
 import 'ui/theme/app_theme.dart';
@@ -12,7 +13,7 @@ import 'ui/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load saved theme preference before running app
+  // Load saved theme and font preferences before running app
   try {
     final prefs = await SharedPreferences.getInstance();
     final savedTheme = prefs.getString('app_theme_preset_key');
@@ -22,6 +23,14 @@ void main() async {
         orElse: () => AppThemePreset.obsidian,
       );
       AppTheme.setPreset(matched);
+    }
+    final savedFont = prefs.getString('prefs_app_font_preset_key');
+    if (savedFont != null) {
+      final matchedFont = AppFontPreset.values.firstWhere(
+        (f) => f.name == savedFont,
+        orElse: () => AppFontPreset.modern,
+      );
+      AppTheme.setFont(matchedFont);
     }
   } catch (_) {}
 
@@ -52,12 +61,13 @@ class CloudMusicPlayerApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentPreset = ref.watch(themeProvider);
+    final currentFont = ref.watch(fontProvider);
     final palette = AppTheme.getPalette(currentPreset);
 
     return MaterialApp(
       title: 'Cloud Music Player',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.buildThemeData(palette),
+      theme: AppTheme.buildThemeData(palette, fontPreset: currentFont),
       home: const MainNavigationScreen(),
     );
   }

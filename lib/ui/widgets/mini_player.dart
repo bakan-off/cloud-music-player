@@ -105,7 +105,7 @@ class MiniPlayer extends ConsumerWidget {
                                         track.title,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: AppTheme.getTrackTitleStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,
                                           color: AppTheme.textPrimary,
@@ -138,8 +138,8 @@ class MiniPlayer extends ConsumerWidget {
                                             'Ожидание сигнала сети...',
                                             style: TextStyle(
                                               fontSize: 11,
-                                              fontWeight: FontWeight.w600,
                                               color: AppTheme.dangerColor,
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ],
@@ -153,7 +153,7 @@ class MiniPlayer extends ConsumerWidget {
                                             track.artist,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
+                                            style: AppTheme.getTrackArtistStyle(
                                               fontSize: 12,
                                               color: AppTheme.textSecondary,
                                             ),

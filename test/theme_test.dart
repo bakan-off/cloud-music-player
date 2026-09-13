@@ -1,4 +1,4 @@
-﻿import 'package:cloud_music_player/ui/theme/app_theme.dart';
+import 'package:cloud_music_player/ui/theme/app_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -23,6 +23,27 @@ void main() {
       final themeData = AppTheme.buildThemeData(amoled);
       expect(themeData.scaffoldBackgroundColor, amoled.bgDark);
       expect(themeData.colorScheme.primary, amoled.primaryColor);
+    });
+
+    test('all 4 font options are defined with valid properties', () {
+      expect(AppTheme.allFonts.length, 4);
+      for (final font in AppTheme.allFonts) {
+        expect(font.title.isNotEmpty, true);
+        expect(font.description.isNotEmpty, true);
+        expect(font.fontFamily, isNotNull);
+      }
+    });
+
+    test('getTrackTitleStyle and getTrackArtistStyle return configured font styles', () {
+      AppTheme.setFont(AppFontPreset.condensed);
+      final titleStyle = AppTheme.getTrackTitleStyle();
+      expect(titleStyle.fontFamily, 'sans-serif-condensed');
+      final artistStyle = AppTheme.getTrackArtistStyle();
+      expect(artistStyle.fontFamily, 'sans-serif-condensed');
+
+      AppTheme.setFont(AppFontPreset.serif);
+      final serifTitle = AppTheme.getTrackTitleStyle();
+      expect(serifTitle.fontFamily, 'serif');
     });
   });
 }

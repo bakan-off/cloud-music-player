@@ -303,7 +303,7 @@ class LibraryScreen extends ConsumerWidget {
             track.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: AppTheme.getTrackTitleStyle(
               fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
               color: isCurrent ? AppTheme.primaryAccent : AppTheme.textPrimary,
               fontSize: 14,
@@ -316,7 +316,10 @@ class LibraryScreen extends ConsumerWidget {
                   track.artist,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  style: AppTheme.getTrackArtistStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ),
               if (track.isCached) ...[

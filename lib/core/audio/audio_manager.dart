@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -36,6 +37,8 @@ class AudioManager {
   // Network interruption & voice alert tracking
   bool _pausedByNetworkLoss = false;
   bool _userIntentPlaying = false;
+  bool _isVoiceAlertPlaying = false;
+  bool get isVoiceAlertPlaying => _isVoiceAlertPlaying;
   Timer? _reconnectWatchdog;
   Duration _interruptedPosition = Duration.zero;
   int _interruptedIndex = -1;
@@ -72,7 +75,8 @@ class AudioManager {
     } catch (_) {}
 
     _player.currentIndexStream.listen((index) {
-      if (index != null &&
+      if (!_isVoiceAlertPlaying &&
+          index != null &&
           index >= 0 &&
           index < _playbackQueue.length &&
           index != _currentIndex) {
@@ -83,13 +87,14 @@ class AudioManager {
     });
 
     _player.playingStream.listen((playing) {
-      if (playing) {
+      if (!_isVoiceAlertPlaying && playing) {
         _userIntentPlaying = true;
       }
     });
 
     Timer? bufferingWatchdog;
     _player.playerStateStream.listen((state) {
+      if (_isVoiceAlertPlaying) return;
       if (state.processingState == ProcessingState.completed) {
         _handleTrackCompleted();
       } else if (state.processingState == ProcessingState.buffering) {
@@ -101,7 +106,8 @@ class AudioManager {
           bufferingWatchdog = Timer(const Duration(seconds: 3), () async {
             if (_player.processingState == ProcessingState.buffering &&
                 !_pausedByNetworkLoss &&
-                _userIntentPlaying) {
+                _userIntentPlaying &&
+                !_isVoiceAlertPlaying) {
               final hasNet = await NetworkMonitor.instance.hasActualInternet();
               if (!hasNet) {
                 await _handleNetworkLost();
@@ -110,7 +116,8 @@ class AudioManager {
                 Timer(const Duration(seconds: 3), () async {
                   if (_player.processingState == ProcessingState.buffering &&
                       !_pausedByNetworkLoss &&
-                      _userIntentPlaying) {
+                      _userIntentPlaying &&
+                      !_isVoiceAlertPlaying) {
                     await _handleNetworkLost();
                   }
                 });
@@ -126,7 +133,7 @@ class AudioManager {
     _player.playbackEventStream.listen(
       (event) {},
       onError: (e) async {
-        if (_userIntentPlaying && !_pausedByNetworkLoss) {
+        if (!_isVoiceAlertPlaying && _userIntentPlaying && !_pausedByNetworkLoss) {
           final track = currentTrack;
           if (track != null && !track.isCached) {
             await _handleNetworkLost();
@@ -136,13 +143,13 @@ class AudioManager {
     );
 
     NetworkMonitor.instance.onConnectionLost.listen((_) {
-      if (_userIntentPlaying && !_pausedByNetworkLoss) {
+      if (!_isVoiceAlertPlaying && _userIntentPlaying && !_pausedByNetworkLoss) {
         _handleNetworkLost();
       }
     });
 
     NetworkMonitor.instance.onConnectionRestored.listen((_) async {
-      if (_pausedByNetworkLoss) {
+      if (_pausedByNetworkLoss && !_isVoiceAlertPlaying) {
         final hasNet = await NetworkMonitor.instance.hasActualInternet();
         if (hasNet && _pausedByNetworkLoss) {
           await _handleNetworkRestored();
@@ -151,7 +158,7 @@ class AudioManager {
     });
 
     NetworkMonitor.instance.onWifiLost.listen((_) {
-      if (_userIntentPlaying && !_pausedByNetworkLoss) {
+      if (!_isVoiceAlertPlaying && _userIntentPlaying && !_pausedByNetworkLoss) {
         final track = currentTrack;
         if (track != null && !track.isCached) {
           _handleNetworkLost();
@@ -160,10 +167,69 @@ class AudioManager {
     });
 
     NetworkMonitor.instance.onWifiRestored.listen((_) async {
-      if (_pausedByNetworkLoss) {
+      if (_pausedByNetworkLoss && !_isVoiceAlertPlaying) {
         await _handleNetworkRestored();
       }
     });
+  }
+
+  /// Plays voice alert through the single unified AudioPlayer instance.
+  /// Preserves music queue, position, and playback state without session conflicts.
+  Future<void> playVoiceAlert(String assetPath, {bool isTest = false}) async {
+    if (!VoiceNotifier.instance.isEnabled && !isTest) return;
+    if (_isVoiceAlertPlaying) return;
+
+    _isVoiceAlertPlaying = true;
+    try {
+      final wasPlaying = _player.playing;
+      final savedPos = _player.position;
+      final savedIdx = _currentIndex;
+
+      if (wasPlaying) {
+        try {
+          await _player.pause();
+        } catch (_) {}
+      }
+
+      final filePath = await VoiceNotifier.instance.ensureLocalAudioFile(assetPath);
+      final isNoSignal = assetPath.contains('no_signal');
+      final mediaItem = MediaItem(
+        id: 'voice_alert_${p.basenameWithoutExtension(assetPath)}',
+        title: isNoSignal ? 'Оповещение: Нет сигнала' : 'Оповещение: Есть сигнал',
+        artist: 'Cloud Music Player',
+      );
+      final voiceSource = AudioSource.file(
+        filePath,
+        tag: mediaItem,
+      );
+
+      await _player.stop();
+      await _player.setAudioSource(voiceSource);
+      await _player.setVolume(1.0);
+      await _player.play();
+
+      // Wait until voice playback completes (max 4 seconds)
+      await _player.playerStateStream
+          .firstWhere((s) => s.processingState == ProcessingState.completed)
+          .timeout(const Duration(seconds: 4), onTimeout: () => _player.playerState);
+
+      // If not waiting for network restoration, restore the user's music queue
+      if (!_pausedByNetworkLoss &&
+          _playbackQueue.isNotEmpty &&
+          savedIdx >= 0 &&
+          savedIdx < _playbackQueue.length) {
+        await _loadPlaylistAndPlay(
+          initialIndex: savedIdx,
+          initialPosition: savedPos,
+          play: wasPlaying,
+        );
+      }
+    } catch (e) {
+      debugPrint('AudioManager playVoiceAlert error: $e');
+      if (isTest) rethrow;
+    } finally {
+      _isVoiceAlertPlaying = false;
+    }
   }
 
   Future<void> _handleNetworkLost() async {
@@ -285,8 +351,14 @@ class AudioManager {
         tag: mediaItem,
       );
     } else {
+      Uri uri;
+      try {
+        uri = Uri.parse(track.streamUrl);
+      } catch (_) {
+        uri = Uri.parse(Uri.encodeFull(track.streamUrl));
+      }
       return AudioSource.uri(
-        Uri.parse(track.streamUrl),
+        uri,
         tag: mediaItem,
       );
     }
@@ -317,7 +389,8 @@ class AudioManager {
       if (play) {
         await _player.play();
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('AudioManager _loadPlaylistAndPlay error: $e\n$stack');
       if (play) {
         try {
           await _player.play();

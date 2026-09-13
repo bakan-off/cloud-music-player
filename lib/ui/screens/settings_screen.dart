@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/audio/voice_notifier.dart';
 import '../../core/update/update_service.dart';
+import '../../providers/font_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
@@ -188,9 +189,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
-          // Section: Themes
+          // Section: Themes & Fonts
           _buildSectionHeader('ОФОРМЛЕНИЕ И ТЕМЫ'),
           _buildThemeCard(),
+          const SizedBox(height: 14),
+          _buildFontCard(),
 
           const SizedBox(height: 24),
 
@@ -320,7 +323,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: () async {
                     try {
                       await VoiceNotifier.instance.testNoSignal();
-                      if (context.mounted) {
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('🔊 Проиграно: «Нет сигнала»'),
@@ -329,7 +332,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         );
                       }
                     } catch (e) {
-                      if (context.mounted) {
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Ошибка звука: $e'),
@@ -357,7 +360,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: () async {
                     try {
                       await VoiceNotifier.instance.testSignalRestored();
-                      if (context.mounted) {
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('🔊 Проиграно: «Есть сигнал»'),
@@ -366,7 +369,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         );
                       }
                     } catch (e) {
-                      if (context.mounted) {
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Ошибка звука: $e'),
@@ -475,6 +478,116 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         size: 22,
                       )
                     : null,
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFontCard() {
+    final currentFontPreset = ref.watch(fontProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.dividerDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.font_download_rounded, color: AppTheme.primaryAccent, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'Шрифт текста песен',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Выберите визуальный стиль шрифта для названий треков и авторов',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...AppTheme.allFonts.map((font) {
+            final isSelected = font.preset == currentFontPreset;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppTheme.primaryColor.withValues(alpha: 0.12)
+                    : AppTheme.surfaceDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? AppTheme.primaryAccent : AppTheme.dividerDark,
+                  width: isSelected ? 1.5 : 1.0,
+                ),
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                onTap: () {
+                  ref.read(fontProvider.notifier).setPreset(font.preset);
+                },
+                leading: Icon(
+                  isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                  color: isSelected ? AppTheme.primaryAccent : AppTheme.textSecondary,
+                  size: 20,
+                ),
+                title: Text(
+                  font.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? AppTheme.primaryAccent : AppTheme.textPrimary,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(
+                      font.description,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Live preview container showing track title & artist in this font
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardDark,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.dividerDark.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        'Любимая песня • Знаменитый артист',
+                        style: AppTheme.getTrackTitleStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? AppTheme.primaryAccent : AppTheme.textPrimary,
+                          customPreset: font.preset,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }),

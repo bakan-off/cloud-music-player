@@ -8,6 +8,29 @@ enum AppThemePreset {
   amoled,   // Pure OLED Black
 }
 
+enum AppFontPreset {
+  modern,     // Modern Sans (Roboto / System Sans-Serif)
+  condensed,  // Compact Condensed (sans-serif-condensed)
+  serif,      // Classic Serif (serif)
+  monospace,  // Retro Monospace (monospace)
+}
+
+class FontOption {
+  final AppFontPreset preset;
+  final String title;
+  final String description;
+  final String? fontFamily;
+  final double letterSpacing;
+
+  const FontOption({
+    required this.preset,
+    required this.title,
+    required this.description,
+    required this.fontFamily,
+    this.letterSpacing = 0.0,
+  });
+}
+
 class ThemePalette {
   final AppThemePreset preset;
   final String title;
@@ -111,10 +134,86 @@ class AppTheme {
     amoledPalette,
   ];
 
+  static const List<FontOption> allFonts = [
+    FontOption(
+      preset: AppFontPreset.modern,
+      title: 'Современный',
+      description: 'Чистый гротеск с отличной читаемостью и сбалансированным интервалом',
+      fontFamily: 'sans-serif-medium',
+      letterSpacing: -0.2,
+    ),
+    FontOption(
+      preset: AppFontPreset.condensed,
+      title: 'Компактный (Стильный)',
+      description: 'Узкий динамичный шрифт, как в Spotify и Apple Music',
+      fontFamily: 'sans-serif-condensed',
+      letterSpacing: 0.1,
+    ),
+    FontOption(
+      preset: AppFontPreset.serif,
+      title: 'Классический (С засечками)',
+      description: 'Элегантный виниловый стиль с книжными засечками',
+      fontFamily: 'serif',
+      letterSpacing: 0.0,
+    ),
+    FontOption(
+      preset: AppFontPreset.monospace,
+      title: 'Моноширинный (Ретро)',
+      description: 'Винтажная эстетика студийных дек и магнитофонов',
+      fontFamily: 'monospace',
+      letterSpacing: -0.4,
+    ),
+  ];
+
   static ThemePalette currentPalette = obsidianPalette;
+  static FontOption currentFont = allFonts[0];
 
   static void setPreset(AppThemePreset preset) {
     currentPalette = getPalette(preset);
+  }
+
+  static void setFont(AppFontPreset preset) {
+    currentFont = allFonts.firstWhere((f) => f.preset == preset, orElse: () => allFonts[0]);
+  }
+
+  static FontOption getFont(AppFontPreset preset) {
+    return allFonts.firstWhere((f) => f.preset == preset, orElse: () => allFonts[0]);
+  }
+
+  static TextStyle getTrackTitleStyle({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    AppFontPreset? customPreset,
+  }) {
+    final font = customPreset != null ? getFont(customPreset) : currentFont;
+    return TextStyle(
+      fontFamily: font.fontFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight ?? FontWeight.bold,
+      color: color ?? textPrimary,
+      letterSpacing: font.letterSpacing,
+      height: height,
+    );
+  }
+
+  static TextStyle getTrackArtistStyle({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    AppFontPreset? customPreset,
+  }) {
+    final font = customPreset != null ? getFont(customPreset) : currentFont;
+    return TextStyle(
+      fontFamily: font.fontFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight ?? FontWeight.normal,
+      color: color ?? textSecondary,
+      letterSpacing: font.letterSpacing * 0.5,
+      height: height,
+    );
   }
 
   static ThemePalette getPalette(AppThemePreset preset) {
@@ -147,10 +246,12 @@ class AppTheme {
 
   static ThemeData get darkTheme => buildThemeData(currentPalette);
 
-  static ThemeData buildThemeData(ThemePalette palette) {
+  static ThemeData buildThemeData(ThemePalette palette, {AppFontPreset? fontPreset}) {
+    final font = fontPreset != null ? getFont(fontPreset) : currentFont;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: font.fontFamily,
       scaffoldBackgroundColor: palette.bgDark,
       colorScheme: ColorScheme.dark(
         primary: palette.primaryColor,

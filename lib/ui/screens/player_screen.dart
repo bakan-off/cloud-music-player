@@ -157,7 +157,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: AppTheme.getTrackTitleStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
@@ -167,7 +167,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                       Text(
                         track.artist,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: AppTheme.getTrackArtistStyle(
                           fontSize: 16,
                           color: AppTheme.textSecondary,
                         ),
