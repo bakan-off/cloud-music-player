@@ -12,7 +12,9 @@ class NetworkMonitor {
   StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   bool _isOnline = true;
+  bool _hasWifi = false;
   bool get isOnline => _isOnline;
+  bool get hasWifi => _hasWifi;
 
   final _statusController = StreamController<bool>.broadcast();
   Stream<bool> get onStatusChanged => _statusController.stream;
@@ -23,16 +25,35 @@ class NetworkMonitor {
   final _connectionRestoredController = StreamController<void>.broadcast();
   Stream<void> get onConnectionRestored => _connectionRestoredController.stream;
 
+  final _wifiLostController = StreamController<void>.broadcast();
+  Stream<void> get onWifiLost => _wifiLostController.stream;
+
+  final _wifiRestoredController = StreamController<void>.broadcast();
+  Stream<void> get onWifiRestored => _wifiRestoredController.stream;
+
   Future<void> _init() async {
     try {
       final results = await _connectivity.checkConnectivity();
       _isOnline = _checkIsConnected(results);
+      _hasWifi = _checkHasWifi(results);
     } catch (_) {
       _isOnline = true;
+      _hasWifi = false;
     }
 
     _subscription = _connectivity.onConnectivityChanged.listen((results) {
       final connected = _checkIsConnected(results);
+      final currentWifi = _checkHasWifi(results);
+
+      // Detect Wi-Fi drop/restoration
+      if (_hasWifi && !currentWifi) {
+        _hasWifi = false;
+        _wifiLostController.add(null);
+      } else if (!_hasWifi && currentWifi) {
+        _hasWifi = true;
+        _wifiRestoredController.add(null);
+      }
+
       if (connected != _isOnline) {
         _isOnline = connected;
         _statusController.add(_isOnline);
@@ -53,6 +74,10 @@ class NetworkMonitor {
         r == ConnectivityResult.wifi ||
         r == ConnectivityResult.mobile ||
         r == ConnectivityResult.ethernet);
+  }
+
+  bool _checkHasWifi(List<ConnectivityResult> results) {
+    return results.contains(ConnectivityResult.wifi);
   }
 
   Future<bool> checkConnection() async {
@@ -96,5 +121,7 @@ class NetworkMonitor {
     _statusController.close();
     _connectionLostController.close();
     _connectionRestoredController.close();
+    _wifiLostController.close();
+    _wifiRestoredController.close();
   }
 }

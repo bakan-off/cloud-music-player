@@ -245,56 +245,140 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.dividerDark),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.record_voice_over_rounded,
-              color: AppTheme.primaryAccent,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Голос при потере связи',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  'Озвучивать "Нет сигнала" и "Есть сигнал" при обрыве Wi-Fi и автоматически продолжать стрим',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
-                    height: 1.3,
-                  ),
+                child: Icon(
+                  Icons.record_voice_over_rounded,
+                  color: AppTheme.primaryAccent,
+                  size: 24,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Голос при потере связи',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Озвучивать «Нет сигнала» и «Есть сигнал» при обрыве Wi-Fi и автоматически продолжать стрим',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: _voiceAlertsEnabled,
+                activeTrackColor: AppTheme.primaryAccent,
+                onChanged: (val) async {
+                  setState(() {
+                    _voiceAlertsEnabled = val;
+                  });
+                  await VoiceNotifier.instance.setEnabled(val);
+                },
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Switch(
-            value: _voiceAlertsEnabled,
-            activeTrackColor: AppTheme.primaryAccent,
-            onChanged: (val) async {
-              setState(() {
-                _voiceAlertsEnabled = val;
-              });
-              await VoiceNotifier.instance.setEnabled(val);
-            },
+          const SizedBox(height: 14),
+          Divider(color: AppTheme.dividerDark.withValues(alpha: 0.5)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                    side: BorderSide(color: AppTheme.dividerDark),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.volume_up_rounded, size: 18),
+                  label: const Text(
+                    'Тест: «Нет сигнала»',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    try {
+                      await VoiceNotifier.instance.testNoSignal();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🔊 Проиграно: «Нет сигнала»'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Ошибка звука: $e'),
+                            backgroundColor: AppTheme.dangerColor,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                    side: BorderSide(color: AppTheme.dividerDark),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.volume_up_rounded, size: 18),
+                  label: const Text(
+                    'Тест: «Есть сигнал»',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    try {
+                      await VoiceNotifier.instance.testSignalRestored();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🔊 Проиграно: «Есть сигнал»'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Ошибка звука: $e'),
+                            backgroundColor: AppTheme.dangerColor,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),

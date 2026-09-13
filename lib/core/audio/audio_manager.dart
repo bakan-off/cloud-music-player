@@ -149,6 +149,21 @@ class AudioManager {
         }
       }
     });
+
+    NetworkMonitor.instance.onWifiLost.listen((_) {
+      if (_userIntentPlaying && !_pausedByNetworkLoss) {
+        final track = currentTrack;
+        if (track != null && !track.isCached) {
+          _handleNetworkLost();
+        }
+      }
+    });
+
+    NetworkMonitor.instance.onWifiRestored.listen((_) async {
+      if (_pausedByNetworkLoss) {
+        await _handleNetworkRestored();
+      }
+    });
   }
 
   Future<void> _handleNetworkLost() async {

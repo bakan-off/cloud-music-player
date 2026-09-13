@@ -1,5 +1,6 @@
-﻿import 'package:cloud_music_player/core/network/network_monitor.dart';
 import 'package:cloud_music_player/core/audio/voice_notifier.dart';
+import 'package:cloud_music_player/core/network/network_monitor.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,12 +23,17 @@ void main() {
       expect(notifier.isEnabled, isTrue);
     });
 
-    test('NetworkMonitor singleton exists and provides streams', () {
+    test('VoiceNotifier audio asset files exist and can be loaded from bundle', () async {
+      final noSignalBytes = await rootBundle.load('assets/audio/no_signal.wav');
+      expect(noSignalBytes.lengthInBytes, greaterThan(1000));
+      final signalRestoredBytes = await rootBundle.load('assets/audio/signal_restored.wav');
+      expect(signalRestoredBytes.lengthInBytes, greaterThan(1000));
+    });
+
+    test('NetworkMonitor provides wifi-specific streams', () {
       final monitor = NetworkMonitor.instance;
-      expect(monitor, isNotNull);
-      expect(monitor.onStatusChanged, isNotNull);
-      expect(monitor.onConnectionLost, isNotNull);
-      expect(monitor.onConnectionRestored, isNotNull);
+      expect(monitor.onWifiLost, isNotNull);
+      expect(monitor.onWifiRestored, isNotNull);
     });
   });
 }

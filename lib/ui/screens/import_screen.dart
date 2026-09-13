@@ -120,62 +120,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     }
   }
 
-  Future<void> _loadDemoTracks() async {
-    final demoTracks = [
-      Track(
-        id: 'demo_1',
-        title: 'Lofi Study Beat',
-        artist: 'Chill Audio Library',
-        streamUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        cloudPath: 'demo/lofi_1.mp3',
-        durationMs: 372000,
-        rating: 5,
-        sourceType: 'direct_url',
-      ),
-      Track(
-        id: 'demo_2',
-        title: 'Deep Ambient Waves',
-        artist: 'Relaxation Collective',
-        streamUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        cloudPath: 'demo/ambient_2.mp3',
-        durationMs: 423000,
-        rating: 4,
-        sourceType: 'direct_url',
-      ),
-      Track(
-        id: 'demo_3',
-        title: 'Synthwave Night Drive',
-        artist: 'Retro Beats',
-        streamUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-        cloudPath: 'demo/synth_3.mp3',
-        durationMs: 345000,
-        rating: 1, // 1 star demo
-        sourceType: 'direct_url',
-      ),
-      Track(
-        id: 'demo_4',
-        title: 'Acoustic Guitar Morning',
-        artist: 'Indie Artist',
-        streamUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-        cloudPath: 'demo/acoustic_4.mp3',
-        durationMs: 302000,
-        rating: 1, // 1 star demo
-        sourceType: 'direct_url',
-      ),
-    ];
 
-    await DBHelper.instance.insertTracks(demoTracks);
-    await ref.read(libraryProvider.notifier).loadTracks();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Добавлено 4 тестовых трека (включая 1★ для проверки очистки)!'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -422,48 +367,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   style: TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.bold),
                 ),
                 onPressed: _pickAndPreviewLocalFile,
-              ),
-            ),
-
-            const SizedBox(height: 32),
-            Divider(color: AppTheme.dividerDark),
-            const SizedBox(height: 24),
-
-            // Section 4: Demo / Test Pack
-            Row(
-              children: [
-                Icon(Icons.auto_awesome_rounded, color: AppTheme.starColor, size: 24),
-                const SizedBox(width: 10),
-                Text(
-                  'Быстрый старт (Тестовые треки)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Хотите сразу протестировать воспроизведение, оффлайн-кэш, шаффл и очистку 1-звездочных треков? Добавьте готовый демо-набор в 1 клик.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
-            ),
-            const SizedBox(height: 14),
-
-            SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  backgroundColor: AppTheme.cardDark,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: AppTheme.dividerDark),
-                  ),
-                ),
-                icon: Icon(Icons.playlist_add_check_rounded, color: AppTheme.starColor),
-                label: Text(
-                  'Добавить 4 тестовых трека',
-                  style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
-                ),
-                onPressed: _loadDemoTracks,
               ),
             ),
 

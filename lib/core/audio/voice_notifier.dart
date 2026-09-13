@@ -1,5 +1,10 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class VoiceNotifier {
@@ -30,6 +35,19 @@ class VoiceNotifier {
     } catch (_) {}
   }
 
+  /// Copies bundled asset into local application support directory so ExoPlayer
+  /// can read it directly from disk without local HTTP proxy / network stack.
+  Future<String> _ensureLocalAudioFile(String assetPath) async {
+    final dir = await getApplicationSupportDirectory();
+    final fileName = p.basename(assetPath);
+    final localFile = File('${dir.path}/$fileName');
+    if (!await localFile.exists() || (await localFile.length()) == 0) {
+      final data = await rootBundle.load(assetPath);
+      await localFile.writeAsBytes(data.buffer.asUint8List(), flush: true);
+    }
+    return localFile.path;
+  }
+
   Future<void> playNoSignal() async {
     if (!_isEnabled || _isPlaying) return;
     await _playAssetWithWait('assets/audio/no_signal.wav');
@@ -40,18 +58,33 @@ class VoiceNotifier {
     await _playAssetWithWait('assets/audio/signal_restored.wav');
   }
 
-  Future<void> _playAssetWithWait(String assetPath) async {
+  /// Explicit test method for Settings screen preview (ignores _isEnabled)
+  Future<void> testNoSignal() async {
+    await _playAssetWithWait('assets/audio/no_signal.wav', isTest: true);
+  }
+
+  /// Explicit test method for Settings screen preview (ignores _isEnabled)
+  Future<void> testSignalRestored() async {
+    await _playAssetWithWait('assets/audio/signal_restored.wav', isTest: true);
+  }
+
+  Future<void> _playAssetWithWait(String assetPath, {bool isTest = false}) async {
+    if ((!_isEnabled && !isTest) || _isPlaying) return;
     try {
       _isPlaying = true;
+      final filePath = await _ensureLocalAudioFile(assetPath);
       await _audioPlayer.stop();
-      await _audioPlayer.setAsset(assetPath);
+      await _audioPlayer.setFilePath(filePath);
       await _audioPlayer.setVolume(1.0);
       await _audioPlayer.play();
-      // Wait until playback completes (or max 3s timeout)
+
+      // Wait until playback completes (max 4 seconds)
       await _audioPlayer.playerStateStream
           .firstWhere((s) => s.processingState == ProcessingState.completed)
-          .timeout(const Duration(seconds: 3), onTimeout: () => _audioPlayer.playerState);
-    } catch (_) {
+          .timeout(const Duration(seconds: 4), onTimeout: () => _audioPlayer.playerState);
+    } catch (e) {
+      debugPrint('VoiceNotifier error: $e');
+      if (isTest) rethrow;
     } finally {
       _isPlaying = false;
     }
