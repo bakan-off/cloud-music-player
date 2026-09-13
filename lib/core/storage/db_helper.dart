@@ -26,11 +26,34 @@ class DBHelper {
     final docsDir = await getApplicationDocumentsDirectory();
     final path = join(docsDir.path, fileName);
 
-    return await openDatabase(
+    final db = await openDatabase(
       path,
       version: 1,
       onCreate: _createDB,
     );
+
+    // Automatically purge old demo tracks if any exist
+    try {
+      await db.delete(
+        'tracks',
+        where: "id LIKE 'demo_%' OR cloudPath LIKE 'demo/%' OR streamUrl LIKE '%soundhelix.com%'",
+      );
+    } catch (_) {}
+
+    return db;
+  }
+
+  /// Automatically purges demo/test tracks from previous versions
+  Future<int> purgeDemoTracks() async {
+    try {
+      final db = await database;
+      return await db.delete(
+        'tracks',
+        where: "id LIKE 'demo_%' OR cloudPath LIKE 'demo/%' OR streamUrl LIKE '%soundhelix.com%'",
+      );
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {

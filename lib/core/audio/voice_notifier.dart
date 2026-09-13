@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,8 +74,18 @@ class VoiceNotifier {
     try {
       _isPlaying = true;
       final filePath = await _ensureLocalAudioFile(assetPath);
+      final mediaItem = MediaItem(
+        id: assetPath,
+        title: assetPath.contains('no_signal') ? 'Нет сигнала' : 'Есть сигнал',
+        artist: 'Cloud Player',
+      );
+      final source = AudioSource.file(
+        filePath,
+        tag: mediaItem,
+      );
+
       await _audioPlayer.stop();
-      await _audioPlayer.setFilePath(filePath);
+      await _audioPlayer.setAudioSource(source);
       await _audioPlayer.setVolume(1.0);
       await _audioPlayer.play();
 

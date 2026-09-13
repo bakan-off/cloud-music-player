@@ -110,6 +110,7 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
   Future<void> loadTracks() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      await DBHelper.instance.purgeDemoTracks();
       final tracks = await DBHelper.instance.getAllTracks();
       final oneStarCount = await DBHelper.instance.getOneStarCount();
       state = state.copyWith(

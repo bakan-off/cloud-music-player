@@ -67,7 +67,7 @@
 ## 📲 Как скачать и установить
 
 1. **Скачайте APK файл:**
-   👉 **[cloud-music-player-v1.0.6.apk (Прямая ссылка на скачивание)](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.6/cloud-music-player-v1.0.6.apk)**
+   👉 **[cloud-music-player-v1.0.7.apk (Прямая ссылка на скачивание)](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.7/cloud-music-player-v1.0.7.apk)**
    *(или перейдите в раздел [Релизы на GitHub](https://github.com/bakan-off/cloud-music-player/releases))*
 2. Откройте скачанный `.apk` файл на Android-смартфоне и подтвердите установку (при необходимости разрешите установку из браузера/проводника).
 3. Запустите **Cloud Player**, откройте вкладку **«Добавить»**, вставьте ссылку на свою облачную папку Google Диска или Яндекс.Диска и нажмите **«Загрузить / Синхронизировать»**.
