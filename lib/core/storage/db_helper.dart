@@ -132,11 +132,25 @@ class DBHelper {
     );
   }
 
-  Future<void> updateCachePath(String trackId, String? localCachePath) async {
+  Future<void> updateCachePath(String trackId, String? localCachePath, {int? fileSize}) async {
+    final db = await database;
+    final data = <String, dynamic>{'localCachePath': localCachePath};
+    if (fileSize != null) {
+      data['fileSize'] = fileSize;
+    }
+    await db.update(
+      'tracks',
+      data,
+      where: 'id = ?',
+      whereArgs: [trackId],
+    );
+  }
+
+  Future<void> updateFileSize(String trackId, int fileSize) async {
     final db = await database;
     await db.update(
       'tracks',
-      {'localCachePath': localCachePath},
+      {'fileSize': fileSize},
       where: 'id = ?',
       whereArgs: [trackId],
     );

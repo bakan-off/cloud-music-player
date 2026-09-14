@@ -1,3 +1,4 @@
+import 'package:cloud_music_player/models/track.dart';
 import 'package:cloud_music_player/ui/theme/app_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,8 +26,9 @@ void main() {
       expect(themeData.colorScheme.primary, amoled.primaryColor);
     });
 
-    test('all 4 font options are defined with valid properties', () {
+    test('all 4 font options are defined with valid properties and default is condensed', () {
       expect(AppTheme.allFonts.length, 4);
+      expect(AppTheme.allFonts.first.preset, AppFontPreset.condensed);
       for (final font in AppTheme.allFonts) {
         expect(font.title.isNotEmpty, true);
         expect(font.description.isNotEmpty, true);
@@ -44,6 +46,19 @@ void main() {
       AppTheme.setFont(AppFontPreset.serif);
       final serifTitle = AppTheme.getTrackTitleStyle();
       expect(serifTitle.fontFamily, 'serif');
+    });
+
+    test('Track.actualFileSize returns non-zero when fileSize is set or falls back to disk', () {
+      final track = Track(
+        id: 'test_1',
+        title: 'Title',
+        artist: 'Artist',
+        streamUrl: 'https://example.com/audio.mp3',
+        cloudPath: 'cloud/audio.mp3',
+        fileSize: 5242880, // 5 MB
+      );
+      expect(track.actualFileSize, 5242880);
+      expect(track.formattedSize, '5.0 МБ');
     });
   });
 }

@@ -25,13 +25,13 @@ void main() async {
       AppTheme.setPreset(matched);
     }
     final savedFont = prefs.getString('prefs_app_font_preset_key');
-    if (savedFont != null) {
-      final matchedFont = AppFontPreset.values.firstWhere(
-        (f) => f.name == savedFont,
-        orElse: () => AppFontPreset.modern,
-      );
-      AppTheme.setFont(matchedFont);
-    }
+    final matchedFont = savedFont != null
+        ? AppFontPreset.values.firstWhere(
+            (f) => f.name == savedFont,
+            orElse: () => AppFontPreset.condensed,
+          )
+        : AppFontPreset.condensed;
+    AppTheme.setFont(matchedFont);
   } catch (_) {}
 
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {

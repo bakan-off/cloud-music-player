@@ -15,10 +15,10 @@ class CachedScreen extends ConsumerWidget {
     final cachedTracks = libraryState.tracks.where((t) => t.isCached).toList();
     final audio = AudioManager.instance;
 
-    final totalBytes = cachedTracks.fold<int>(0, (sum, t) => sum + t.fileSize);
+    final totalBytes = cachedTracks.fold<int>(0, (sum, t) => sum + t.actualFileSize);
     final formattedTotalSize = totalBytes > 0
-        ? '${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} MB'
-        : '0 MB';
+        ? '${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} МБ'
+        : '0 МБ';
 
     return Scaffold(
       appBar: AppBar(

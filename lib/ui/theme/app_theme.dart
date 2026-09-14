@@ -136,18 +136,18 @@ class AppTheme {
 
   static const List<FontOption> allFonts = [
     FontOption(
-      preset: AppFontPreset.modern,
-      title: 'Современный',
-      description: 'Чистый гротеск с отличной читаемостью и сбалансированным интервалом',
-      fontFamily: 'sans-serif-medium',
-      letterSpacing: -0.2,
-    ),
-    FontOption(
       preset: AppFontPreset.condensed,
       title: 'Компактный (Стильный)',
       description: 'Узкий динамичный шрифт, как в Spotify и Apple Music',
       fontFamily: 'sans-serif-condensed',
       letterSpacing: 0.1,
+    ),
+    FontOption(
+      preset: AppFontPreset.modern,
+      title: 'Современный',
+      description: 'Чистый гротеск с отличной читаемостью и сбалансированным интервалом',
+      fontFamily: 'sans-serif-medium',
+      letterSpacing: -0.2,
     ),
     FontOption(
       preset: AppFontPreset.serif,

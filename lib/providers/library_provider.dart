@@ -112,9 +112,28 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
     try {
       await DBHelper.instance.purgeDemoTracks();
       final tracks = await DBHelper.instance.getAllTracks();
+
+      final syncedTracks = <Track>[];
+      for (final t in tracks) {
+        if (t.isCached && t.localCachePath != null && t.fileSize == 0) {
+          try {
+            final f = File(t.localCachePath!);
+            if (f.existsSync()) {
+              final sz = f.lengthSync();
+              if (sz > 0) {
+                await DBHelper.instance.updateFileSize(t.id, sz);
+                syncedTracks.add(t.copyWith(fileSize: sz));
+                continue;
+              }
+            }
+          } catch (_) {}
+        }
+        syncedTracks.add(t);
+      }
+
       final oneStarCount = await DBHelper.instance.getOneStarCount();
       state = state.copyWith(
-        tracks: tracks,
+        tracks: syncedTracks,
         isLoading: false,
         oneStarCount: oneStarCount,
       );

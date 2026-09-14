@@ -1,11 +1,11 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ui/theme/app_theme.dart';
 
 class FontNotifier extends StateNotifier<AppFontPreset> {
   static const String _fontPrefKey = 'prefs_app_font_preset_key';
 
-  FontNotifier() : super(AppFontPreset.modern) {
+  FontNotifier() : super(AppFontPreset.condensed) {
     _loadSavedPreset();
   }
 
@@ -16,10 +16,13 @@ class FontNotifier extends StateNotifier<AppFontPreset> {
       if (saved != null) {
         final matched = AppFontPreset.values.firstWhere(
           (p) => p.name == saved,
-          orElse: () => AppFontPreset.modern,
+          orElse: () => AppFontPreset.condensed,
         );
         state = matched;
         AppTheme.setFont(matched);
+      } else {
+        state = AppFontPreset.condensed;
+        AppTheme.setFont(AppFontPreset.condensed);
       }
     } catch (_) {}
   }

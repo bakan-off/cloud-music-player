@@ -177,7 +177,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final libraryState = ref.watch(libraryProvider);
     final cachedTracks = libraryState.tracks.where((t) => t.isCached).toList();
-    final totalCacheBytes = cachedTracks.fold<int>(0, (sum, t) => sum + t.fileSize);
+    final totalCacheBytes = cachedTracks.fold<int>(0, (sum, t) => sum + t.actualFileSize);
     final formattedCacheSize = totalCacheBytes > 0
         ? '${(totalCacheBytes / (1024 * 1024)).toStringAsFixed(1)} МБ'
         : '0 МБ';

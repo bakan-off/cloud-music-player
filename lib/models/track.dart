@@ -1,3 +1,5 @@
+import 'dart:io';
+
 class Track {
   final String id;
   final String title;
@@ -30,6 +32,20 @@ class Track {
   bool get isCached => localCachePath != null && localCachePath!.isNotEmpty;
   bool get hasRating => rating > 0;
 
+  /// Returns recorded fileSize or reads real file size directly from disk if cached
+  int get actualFileSize {
+    if (fileSize > 0) return fileSize;
+    if (isCached && localCachePath != null) {
+      try {
+        final f = File(localCachePath!);
+        if (f.existsSync()) {
+          return f.lengthSync();
+        }
+      } catch (_) {}
+    }
+    return 0;
+  }
+
   String get effectivePlayUri => (isCached ? localCachePath : streamUrl) ?? streamUrl;
 
   String get formattedDuration {
@@ -41,11 +57,12 @@ class Track {
   }
 
   String get formattedSize {
-    if (fileSize <= 0) return '';
-    if (fileSize < 1024 * 1024) {
-      return '${(fileSize / 1024).toStringAsFixed(1)} KB';
+    final size = actualFileSize;
+    if (size <= 0) return '';
+    if (size < 1024 * 1024) {
+      return '${(size / 1024).toStringAsFixed(1)} КБ';
     }
-    return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(size / (1024 * 1024)).toStringAsFixed(1)} МБ';
   }
 
   Track copyWith({

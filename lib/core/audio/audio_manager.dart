@@ -639,11 +639,17 @@ class AudioManager {
       await sink.flush();
       await sink.close();
 
+      final downloadedSize = await file.length();
+      final finalSize = downloadedSize > 0 ? downloadedSize : receivedBytes;
+
       _downloadingProgress.remove(trackId);
       _downloadProgressController.add(Map.from(_downloadingProgress));
 
-      final updated = track.copyWith(localCachePath: savePath);
-      await DBHelper.instance.updateCachePath(track.id, savePath);
+      final updated = track.copyWith(
+        localCachePath: savePath,
+        fileSize: finalSize,
+      );
+      await DBHelper.instance.updateCachePath(track.id, savePath, fileSize: finalSize);
       _updateTrackInQueues(updated);
       if (currentTrack?.id == track.id) {
         _currentTrackController.add(updated);
