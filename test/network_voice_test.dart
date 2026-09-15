@@ -1,3 +1,4 @@
+import 'package:cloud_music_player/core/audio/audio_manager.dart';
 import 'package:cloud_music_player/core/audio/voice_notifier.dart';
 import 'package:cloud_music_player/core/network/network_monitor.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +35,12 @@ void main() {
       final monitor = NetworkMonitor.instance;
       expect(monitor.onWifiLost, isNotNull);
       expect(monitor.onWifiRestored, isNotNull);
+    });
+
+    test('AudioManager idle state does not trigger network loss wait', () {
+      final audio = AudioManager.instance;
+      expect(audio.isWaitingForNetwork, isFalse);
+      expect(audio.userIntentPlaying, isFalse);
     });
   });
 }
