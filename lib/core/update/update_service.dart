@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -124,6 +125,9 @@ class UpdateService {
     return false;
   }
 
+  static const MethodChannel _installerChannel =
+      MethodChannel('com.personal.cloudplayer/apk_installer');
+
   /// Downloads APK and streams progress (0.0 to 1.0)
   Future<File> downloadApk(
     String url, {
@@ -133,8 +137,19 @@ class UpdateService {
     final request = http.Request('GET', Uri.parse(url));
     final response = await client.send(request);
 
-    final tempDir = await getTemporaryDirectory();
-    final apkFile = File('${tempDir.path}/update_cloud_player.apk');
+    if (response.statusCode >= 400) {
+      throw HttpException('Ошибка сервера: HTTP ${response.statusCode}');
+    }
+
+    Directory? dir;
+    if (Platform.isAndroid) {
+      try {
+        dir = await getExternalStorageDirectory();
+      } catch (_) {}
+    }
+    dir ??= await getTemporaryDirectory();
+
+    final apkFile = File('${dir.path}/cloud-music-player-v1.0.11.apk');
     if (await apkFile.exists()) {
       try {
         await apkFile.delete();
@@ -167,11 +182,46 @@ class UpdateService {
     }
   }
 
-  /// Launches the Android system package installer for the downloaded APK
-  Future<OpenResult> installApk(File apkFile) async {
-    return await OpenFilex.open(
-      apkFile.path,
-      type: 'application/vnd.android.package-archive',
-    );
+  /// Launches the native Android system package installer for the downloaded APK
+  Future<String> installApk(File apkFile) async {
+    if (Platform.isAndroid) {
+      try {
+        final result = await _installerChannel.invokeMethod<String>(
+          'installApk',
+          {'filePath': apkFile.path},
+        );
+        return result ?? 'UNKNOWN';
+      } catch (e) {
+        // Fallback to OpenFilex if native channel fails
+        final fallback = await OpenFilex.open(
+          apkFile.path,
+          type: 'application/vnd.android.package-archive',
+        );
+        if (fallback.type.name != 'done') {
+          return 'FAIL: ${fallback.message}';
+        }
+        return 'INSTALLING';
+      }
+    } else {
+      final res = await OpenFilex.open(apkFile.path);
+      return res.type.name;
+    }
+  }
+
+  Future<bool> canRequestPackageInstalls() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final res = await _installerChannel.invokeMethod<bool>('canRequestPackageInstalls');
+      return res ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> openInstallPermissionSettings() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _installerChannel.invokeMethod('openInstallPermissionSettings');
+    } catch (_) {}
   }
 }

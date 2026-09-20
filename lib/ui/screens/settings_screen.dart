@@ -112,14 +112,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _installApk(File file) async {
-    final result = await UpdateService.instance.installApk(file);
+    final status = await UpdateService.instance.installApk(file);
     if (!mounted) return;
 
-    if (result.message.isNotEmpty && result.type.name != 'done') {
+    if (status == 'PERMISSION_REQUESTED') {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.security_rounded, color: AppTheme.primaryAccent),
+              const SizedBox(width: 10),
+              const Text('Требуется разрешение'),
+            ],
+          ),
+          content: const Text(
+            'Для установки обновления необходимо разрешить установку приложений из неизвестных источников для Cloud Player в настройках Android.\n\n'
+            'В открывшемся окне включите переключатель «Разрешить установку из этого источника», вернитесь в приложение и нажмите «Установить обновление» повторно.',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Понятно'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await UpdateService.instance.openInstallPermissionSettings();
+              },
+              child: const Text('Открыть настройки'),
+            ),
+          ],
+        ),
+      );
+    } else if (status.startsWith('FAIL:')) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Статус установщика: ${result.message}'),
-          backgroundColor: AppTheme.primaryAccent,
+          content: Text('Ошибка запуска установщика: $status'),
+          backgroundColor: AppTheme.dangerColor,
         ),
       );
     }
@@ -852,6 +883,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(color: AppTheme.dividerDark),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _downloadedApk = null;
+                        });
+                        _startDownloadAndInstall(info);
+                      },
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Скачать заново', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(color: AppTheme.dividerDark),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: info.apkDownloadUrl));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Прямая ссылка на APK скопирована')),
+                        );
+                      },
+                      icon: const Icon(Icons.link_rounded, size: 16),
+                      label: const Text('Ссылка на APK', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
             ] else ...[
               SizedBox(
                 width: double.infinity,
@@ -865,6 +934,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   label: const Text(
                     'Скачать и обновить',
                     style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: info.apkDownloadUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Прямая ссылка на APK скопирована в буфер обмена')),
+                    );
+                  },
+                  icon: Icon(Icons.link_rounded, size: 18, color: AppTheme.textSecondary),
+                  label: Text(
+                    'Скопировать ссылку для скачивания в браузере',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                   ),
                 ),
               ),
