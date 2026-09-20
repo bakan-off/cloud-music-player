@@ -203,6 +203,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 24),
 
+          // Section: 1-Star Tracks Cleanup
+          _buildSectionHeader('ОЧИСТКА НЕЖЕЛАТЕЛЬНЫХ ТРЕКОВ (1★)'),
+          _buildOneStarCleanupCard(libraryState),
+
+          const SizedBox(height: 24),
+
+          // Section: Backup Ratings
+          _buildSectionHeader('РЕЗЕРВНОЕ КОПИРОВАНИЕ ОЦЕНОК'),
+          _buildRatingsBackupCard(),
+
+          const SizedBox(height: 24),
+
+          // Section: Clean Track Titles
+          _buildSectionHeader('ОБРАБОТКА И ОЧИСТКА НАЗВАНИЙ'),
+          _buildCleanTitlesCard(),
+
+          const SizedBox(height: 24),
+
           // Section: Updates
           _buildSectionHeader('ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ'),
           _buildUpdateCard(),
@@ -1022,6 +1040,468 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOneStarCleanupCard(LibraryState libraryState) {
+    final count = libraryState.oneStarCount;
+    final sizeMb = (libraryState.oneStarTotalSize / (1024 * 1024)).toStringAsFixed(1);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: count > 0
+              ? AppTheme.dangerColor.withValues(alpha: 0.35)
+              : AppTheme.dividerDark,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.dangerColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.auto_delete_rounded,
+                  color: AppTheme.dangerColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Нежелательные треки (1★)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      count > 0
+                          ? '$count треков • $sizeMb МБ в кэше'
+                          : 'Треков с оценкой 1★ нет',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: count > 0 ? AppTheme.dangerColor : AppTheme.textSecondary,
+                        fontWeight: count > 0 ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Отмечайте непонравившиеся треки 1 звездой в медиатеке. Они накапливаются здесь, и вы можете в любой момент удалить их из медиатеки и памяти устройства.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+              height: 1.3,
+            ),
+          ),
+          if (count > 0) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.dangerColor,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                label: Text('Удалить все 1★ ($count шт.)'),
+                onPressed: () => _confirmDeleteOneStar(count),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteOneStar(int count) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.dangerColor),
+            const SizedBox(width: 10),
+            const Text('Удаление 1★'),
+          ],
+        ),
+        content: Text(
+          'Вы уверены, что хотите удалить $count трек(ов) с 1 звездой?\n\n'
+          'Они будут полностью удалены из медиатеки, а их файлы стерты с устройства.',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerColor),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              final deleted = await ref.read(libraryProvider.notifier).deleteOneStarTracks();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Успешно удалено $deleted трек(ов)'),
+                    backgroundColor: AppTheme.dangerColor,
+                  ),
+                );
+              }
+            },
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingsBackupCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.dividerDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.starColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.star_rounded,
+                  color: AppTheme.starColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Резервная копия оценок',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Экспорт и импорт рейтингов (1–5 звезд)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Сохраните ваши оценки в формате JSON, чтобы перенести их на другое устройство или восстановить после сброса.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: AppTheme.primaryColor),
+                  ),
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: const Text('Экспорт JSON'),
+                  onPressed: _exportRatings,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.file_upload_outlined, size: 18),
+                  label: const Text('Импорт JSON'),
+                  onPressed: _importRatings,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportRatings() async {
+    final jsonStr = await ref.read(libraryProvider.notifier).exportRatingsJson();
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.file_download_outlined, color: AppTheme.primaryAccent),
+            const SizedBox(width: 10),
+            const Text('Экспорт оценок'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'JSON-данные ваших оценок:',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceDark,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.dividerDark),
+              ),
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  jsonStr,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Закрыть'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: const Text('Копировать в буфер'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: jsonStr));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Рейтинг скопирован в буфер обмена')),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importRatings() async {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (sbCtx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.file_upload_outlined, color: AppTheme.primaryAccent),
+              const SizedBox(width: 10),
+              const Text('Импорт оценок'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Вставьте сохраненный JSON массив с оценками:',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                maxLines: 6,
+                decoration: InputDecoration(
+                  hintText: '[{"id": "...", "rating": 5}, ...]',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.paste_rounded),
+                    tooltip: 'Вставить из буфера',
+                    onPressed: () async {
+                      final data = await Clipboard.getData('text/plain');
+                      if (data?.text != null) {
+                        controller.text = data!.text!.trim();
+                      }
+                    },
+                  ),
+                ),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final text = controller.text.trim();
+                if (text.isEmpty) return;
+                Navigator.pop(ctx);
+                try {
+                  final count = await ref.read(libraryProvider.notifier).importRatingsFromJson(text);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Успешно восстановлено оценок: $count'),
+                        backgroundColor: AppTheme.successColor,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Ошибка импорта: $e'),
+                        backgroundColor: AppTheme.dangerColor,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Импортировать'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCleanTitlesCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.dividerDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.cleaning_services_rounded,
+                  color: AppTheme.primaryAccent,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Очистка названий треков',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Удаление .mp3, [320kbps], (Official Video)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Автоматически приводит названия треков к чистому виду: удаляет технические суффиксы, расширения файлов, битрейт, пометки видео и заменяет нижние подчеркивания на пробелы.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: AppTheme.primaryAccent),
+              ),
+              icon: Icon(Icons.auto_fix_high_rounded, color: AppTheme.primaryAccent, size: 18),
+              label: Text(
+                'Очистить названия всех треков',
+                style: TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () async {
+                final cleaned = await ref.read(libraryProvider.notifier).cleanTrackTitles();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Очищено названий: $cleaned'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                }
+              },
             ),
           ),
         ],

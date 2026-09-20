@@ -13,6 +13,7 @@ class ImportScreen extends ConsumerStatefulWidget {
 
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   final TextEditingController _urlController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   bool _isProcessing = false;
   String? _statusMessage;
   bool _isSuccess = false;
@@ -20,6 +21,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   @override
   void dispose() {
     _urlController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -57,6 +59,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
   Future<void> _importOrSyncUrl() async {
     final url = _urlController.text.trim();
+    final customName = _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : null;
     if (url.isEmpty) {
       setState(() {
         _statusMessage = 'Пожалуйста, вставьте ссылку на папку или аудиофайл.';
@@ -72,7 +75,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     });
 
     try {
-      final result = await ref.read(libraryProvider.notifier).syncWithCloud(folderUrl: url);
+      final result = await ref.read(libraryProvider.notifier).syncWithCloud(
+        folderUrl: url,
+        customName: customName,
+      );
       setState(() {
         _isProcessing = false;
         _isSuccess = true;
@@ -81,6 +87,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             '• Добавлено новых: ${result.addedTracks}\n'
             '• Удалено отсутствующих: ${result.removedTracks}';
         _urlController.clear();
+        _nameController.clear();
       });
     } catch (e) {
       setState(() {
@@ -120,6 +127,68 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
 
 
+  void _confirmDeleteFolder(String folderUrl, String folderName, int trackCount) {
+    bool deleteTracksAlso = false;
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (sbCtx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, color: AppTheme.dangerColor),
+              const SizedBox(width: 10),
+              const Text('Удалить папку'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Вы действительно хотите удалить источник «$folderName»?',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'Также удалить все треки этой папки из медиатеки ($trackCount шт.)',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                value: deleteTracksAlso,
+                activeColor: AppTheme.dangerColor,
+                onChanged: (val) {
+                  setDialogState(() {
+                    deleteTracksAlso = val ?? false;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerColor),
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                await ref.read(libraryProvider.notifier).deleteFolder(folderUrl, deleteTracks: deleteTracksAlso);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Папка удалена из списка источников')),
+                  );
+                }
+              },
+              child: const Text('Удалить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final libraryState = ref.watch(libraryProvider);
@@ -133,8 +202,132 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section 1: Active Connected Cloud Folder
-            if (libraryState.activeCloudUrl != null) ...[
+            // Section 1: Connected Cloud Folders
+            if (libraryState.savedFolders.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(Icons.folder_shared_rounded, color: AppTheme.primaryAccent, size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Подключенные папки (${libraryState.savedFolders.length})',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...libraryState.savedFolders.map((folder) {
+                final name = (folder['name'] as String?)?.trim();
+                final displayName = (name != null && name.isNotEmpty) ? name : 'Облачная папка';
+                final url = folder['url'] as String;
+                final trackCount = folder['trackCount'] as int? ?? 0;
+                final lastSyncedStr = folder['lastSyncedAt'] as String?;
+                String syncedTime = '';
+                if (lastSyncedStr != null) {
+                  try {
+                    final dt = DateTime.parse(lastSyncedStr);
+                    syncedTime = '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                  } catch (_) {}
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: libraryState.selectedFolderUrl == url
+                          ? AppTheme.primaryAccent
+                          : AppTheme.primaryColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.cloud_done_rounded, color: AppTheme.successColor, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              displayName,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline_rounded, color: AppTheme.dangerColor, size: 20),
+                            tooltip: 'Удалить папку',
+                            onPressed: _isProcessing
+                                ? null
+                                : () => _confirmDeleteFolder(url, displayName, trackCount),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            'Треков: $trackCount',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryAccent),
+                          ),
+                          if (syncedTime.isNotEmpty) ...[
+                            const SizedBox(width: 10),
+                            Text(
+                              'Синхр: $syncedTime',
+                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            ),
+                          ],
+                          const Spacer(),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                            ),
+                            icon: const Icon(Icons.sync_rounded, size: 14),
+                            label: const Text('Синхронизировать', style: TextStyle(fontSize: 11)),
+                            onPressed: _isProcessing
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      _isProcessing = true;
+                                      _statusMessage = 'Синхронизация с папкой «$displayName»...';
+                                    });
+                                    try {
+                                      final res = await ref.read(libraryProvider.notifier).syncWithCloud(
+                                        folderUrl: url,
+                                        customName: name,
+                                      );
+                                      setState(() {
+                                        _isProcessing = false;
+                                        _isSuccess = true;
+                                        _statusMessage = '«$displayName» синхронизирована: в облаке ${res.totalCloudTracks} треков. '
+                                            'Добавлено: ${res.addedTracks}, удалено: ${res.removedTracks}.';
+                                      });
+                                    } catch (e) {
+                                      setState(() {
+                                        _isProcessing = false;
+                                        _isSuccess = false;
+                                        _statusMessage = 'Ошибка синхронизации: $e';
+                                      });
+                                    }
+                                  },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 16),
+            ] else if (libraryState.activeCloudUrl != null) ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -225,7 +418,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 Icon(Icons.add_link_rounded, color: AppTheme.primaryAccent, size: 24),
                 const SizedBox(width: 10),
                 Text(
-                  'Папка в облаке (Google Диск / Яндекс)',
+                  'Добавить папку в облаке',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                 ),
               ],
@@ -237,6 +430,15 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 14),
+
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: 'Название источника (необязательно, напр. Рок или Новинки)',
+                prefixIcon: Icon(Icons.label_outline_rounded, color: AppTheme.textSecondary),
+              ),
+            ),
+            const SizedBox(height: 10),
 
             TextField(
               controller: _urlController,

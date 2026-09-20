@@ -1,10 +1,43 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/audio/audio_manager.dart';
 import '../../core/cloud/cloud_parser.dart';
 import '../../core/storage/db_helper.dart';
 import '../../models/track.dart';
+
+enum TrackSortOption {
+  dateAddedDesc, // Сначала новые
+  dateAddedAsc,  // Сначала старые
+  titleAsc,      // По названию (А → Я)
+  titleDesc,     // По названию (Я → А)
+  artistAsc,     // По исполнителю (А → Я)
+  ratingDesc,    // По рейтингу (сначала 5★)
+  durationDesc,  // По длительности
+}
+
+extension TrackSortOptionExtension on TrackSortOption {
+  String get label {
+    switch (this) {
+      case TrackSortOption.dateAddedDesc:
+        return 'Сначала новые';
+      case TrackSortOption.dateAddedAsc:
+        return 'Сначала старые';
+      case TrackSortOption.titleAsc:
+        return 'По названию (А → Я)';
+      case TrackSortOption.titleDesc:
+        return 'По названию (Я → А)';
+      case TrackSortOption.artistAsc:
+        return 'По исполнителю (А → Я)';
+      case TrackSortOption.ratingDesc:
+        return 'По рейтингу (сначала 5★)';
+      case TrackSortOption.durationDesc:
+        return 'По длительности';
+    }
+  }
+}
 
 class SyncResult {
   final int totalCloudTracks;
@@ -22,12 +55,16 @@ class LibraryState {
   final List<Track> tracks;
   final bool isLoading;
   final String? errorMessage;
-  final int? ratingFilter; // null = all, 0 = unrated, 1..5 = specific stars
+  final int? ratingFilter; // null = all, 0 = unrated, 1..5 = stars, -1 = new tracks
   final String searchQuery;
   final int oneStarCount;
+  final int oneStarTotalSize;
   final String? activeCloudUrl;
   final int? lastCloudCheckCount;
   final DateTime? lastSyncedAt;
+  final TrackSortOption sortOption;
+  final String? selectedFolderUrl;
+  final List<Map<String, dynamic>> savedFolders;
 
   LibraryState({
     this.tracks = const [],
@@ -36,17 +73,48 @@ class LibraryState {
     this.ratingFilter,
     this.searchQuery = '',
     this.oneStarCount = 0,
+    this.oneStarTotalSize = 0,
     this.activeCloudUrl,
     this.lastCloudCheckCount,
     this.lastSyncedAt,
+    this.sortOption = TrackSortOption.dateAddedDesc,
+    this.selectedFolderUrl,
+    this.savedFolders = const [],
   });
 
+  int get newTracksCount {
+    final cutoff = DateTime.now().subtract(const Duration(days: 14));
+    final count = tracks.where((t) => t.addedAt.isAfter(cutoff)).length;
+    return count > 0 ? count : (tracks.length > 30 ? 30 : tracks.length);
+  }
+
   List<Track> get filteredTracks {
-    return tracks.where((track) {
-      if (ratingFilter != null) {
-        if (ratingFilter == 0 && track.rating != 0) return false;
-        if (ratingFilter! > 0 && track.rating != ratingFilter) return false;
+    final now = DateTime.now();
+    final cutoff = now.subtract(const Duration(days: 14));
+    final recentIn14Days = tracks.where((t) => t.addedAt.isAfter(cutoff)).toList();
+    final List<String> newIds = recentIn14Days.isNotEmpty
+        ? recentIn14Days.map((t) => t.id).toList()
+        : (List<Track>.from(tracks)..sort((a, b) => b.addedAt.compareTo(a.addedAt)))
+            .take(30)
+            .map((t) => t.id)
+            .toList();
+
+    final filtered = tracks.where((track) {
+      // 1. Folder filter
+      if (selectedFolderUrl != null && selectedFolderUrl!.isNotEmpty) {
+        if (track.folderUrl != selectedFolderUrl) return false;
       }
+      // 2. Rating or "Новые" filter
+      if (ratingFilter != null) {
+        if (ratingFilter == -1) {
+          if (!newIds.contains(track.id)) return false;
+        } else if (ratingFilter == 0) {
+          if (track.rating != 0) return false;
+        } else if (ratingFilter! > 0) {
+          if (track.rating != ratingFilter) return false;
+        }
+      }
+      // 3. Search query
       if (searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
         final matchTitle = track.title.toLowerCase().contains(query);
@@ -55,6 +123,37 @@ class LibraryState {
       }
       return true;
     }).toList();
+
+    // 4. Sort
+    switch (sortOption) {
+      case TrackSortOption.dateAddedDesc:
+        filtered.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+        break;
+      case TrackSortOption.dateAddedAsc:
+        filtered.sort((a, b) => a.addedAt.compareTo(b.addedAt));
+        break;
+      case TrackSortOption.titleAsc:
+        filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+      case TrackSortOption.titleDesc:
+        filtered.sort((a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
+        break;
+      case TrackSortOption.artistAsc:
+        filtered.sort((a, b) => a.artist.toLowerCase().compareTo(b.artist.toLowerCase()));
+        break;
+      case TrackSortOption.ratingDesc:
+        filtered.sort((a, b) {
+          final r = b.rating.compareTo(a.rating);
+          if (r != 0) return r;
+          return b.addedAt.compareTo(a.addedAt);
+        });
+        break;
+      case TrackSortOption.durationDesc:
+        filtered.sort((a, b) => b.durationMs.compareTo(a.durationMs));
+        break;
+    }
+
+    return filtered;
   }
 
   LibraryState copyWith({
@@ -66,9 +165,14 @@ class LibraryState {
     bool clearRatingFilter = false,
     String? searchQuery,
     int? oneStarCount,
+    int? oneStarTotalSize,
     String? activeCloudUrl,
     int? lastCloudCheckCount,
     DateTime? lastSyncedAt,
+    TrackSortOption? sortOption,
+    String? selectedFolderUrl,
+    bool clearSelectedFolder = false,
+    List<Map<String, dynamic>>? savedFolders,
   }) {
     return LibraryState(
       tracks: tracks ?? this.tracks,
@@ -77,17 +181,54 @@ class LibraryState {
       ratingFilter: clearRatingFilter ? null : (ratingFilter ?? this.ratingFilter),
       searchQuery: searchQuery ?? this.searchQuery,
       oneStarCount: oneStarCount ?? this.oneStarCount,
+      oneStarTotalSize: oneStarTotalSize ?? this.oneStarTotalSize,
       activeCloudUrl: activeCloudUrl ?? this.activeCloudUrl,
       lastCloudCheckCount: lastCloudCheckCount ?? this.lastCloudCheckCount,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      sortOption: sortOption ?? this.sortOption,
+      selectedFolderUrl: clearSelectedFolder ? null : (selectedFolderUrl ?? this.selectedFolderUrl),
+      savedFolders: savedFolders ?? this.savedFolders,
     );
   }
 }
 
 class LibraryNotifier extends StateNotifier<LibraryState> {
+  static const String _sortOptionKey = 'prefs_library_sort_option_key';
+
   LibraryNotifier() : super(LibraryState()) {
     _initCloudFolder();
+    _loadSavedPreferences();
     loadTracks();
+  }
+
+  Future<void> _loadSavedPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedSort = prefs.getString(_sortOptionKey);
+      if (savedSort != null) {
+        final opt = TrackSortOption.values.firstWhere(
+          (o) => o.name == savedSort,
+          orElse: () => TrackSortOption.dateAddedDesc,
+        );
+        state = state.copyWith(sortOption: opt);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setSortOption(TrackSortOption option) async {
+    state = state.copyWith(sortOption: option);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_sortOptionKey, option.name);
+    } catch (_) {}
+  }
+
+  void setSelectedFolder(String? folderUrl) {
+    if (folderUrl == null || folderUrl.isEmpty) {
+      state = state.copyWith(clearSelectedFolder: true);
+    } else {
+      state = state.copyWith(selectedFolderUrl: folderUrl);
+    }
   }
 
   Future<void> _initCloudFolder() async {
@@ -102,6 +243,7 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
           activeCloudUrl: url,
           lastCloudCheckCount: count,
           lastSyncedAt: syncedStr != null ? DateTime.tryParse(syncedStr) : null,
+          savedFolders: folders,
         );
       }
     } catch (_) {}
@@ -119,10 +261,10 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
           try {
             final f = File(t.localCachePath!);
             if (f.existsSync()) {
-              final sz = f.lengthSync();
-              if (sz > 0) {
-                await DBHelper.instance.updateFileSize(t.id, sz);
-                syncedTracks.add(t.copyWith(fileSize: sz));
+              final realSize = f.lengthSync();
+              if (realSize > 0) {
+                await DBHelper.instance.updateFileSize(t.id, realSize);
+                syncedTracks.add(t.copyWith(fileSize: realSize));
                 continue;
               }
             }
@@ -132,10 +274,15 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       }
 
       final oneStarCount = await DBHelper.instance.getOneStarCount();
+      final oneStarSize = await DBHelper.instance.getOneStarTracksSize();
+      final savedFolders = await DBHelper.instance.getSavedFolders();
+
       state = state.copyWith(
         tracks: syncedTracks,
         isLoading: false,
         oneStarCount: oneStarCount,
+        oneStarTotalSize: oneStarSize,
+        savedFolders: savedFolders,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Ошибка загрузки: $e');
@@ -161,11 +308,11 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
     return parsedTracks.length;
   }
 
-  /// Imports from cloud URL or synchronizes additions and deletions
-  Future<SyncResult> syncWithCloud({String? folderUrl}) async {
+  /// Imports from cloud URL or synchronizes additions and deletions for a specific folder
+  Future<SyncResult> syncWithCloud({String? folderUrl, String? customName}) async {
     final targetUrl = folderUrl ?? state.activeCloudUrl;
     if (targetUrl == null || targetUrl.trim().isEmpty) {
-      throw Exception('Нет сохраненной ссылки на облако для синхронизации');
+      throw Exception('Нет ссылки на облако для синхронизации');
     }
 
     state = state.copyWith(isLoading: true, clearError: true);
@@ -174,7 +321,7 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       final existingTracks = await DBHelper.instance.getAllTracks();
       final existingMap = {for (final t in existingTracks) t.id: t};
 
-      // 1. Identify new tracks (preserve rating and cache for existing ones)
+      // 1. Identify new tracks (preserve rating, cache, and original addedAt for existing ones)
       int addedCount = 0;
       final tracksToSave = <Track>[];
       final cloudIds = <String>{};
@@ -182,32 +329,40 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       for (final ct in cloudTracks) {
         cloudIds.add(ct.id);
         if (existingMap.containsKey(ct.id)) {
-          // Keep existing ratings and local cache path
           final existing = existingMap[ct.id]!;
           tracksToSave.add(
             ct.copyWith(
               rating: existing.rating,
               localCachePath: existing.localCachePath,
+              fileSize: existing.fileSize > 0 ? existing.fileSize : ct.fileSize,
+              addedAt: existing.addedAt,
+              folderUrl: targetUrl,
             ),
           );
         } else {
-          tracksToSave.add(ct);
+          tracksToSave.add(
+            ct.copyWith(
+              addedAt: DateTime.now(),
+              folderUrl: targetUrl,
+            ),
+          );
           addedCount++;
         }
       }
 
-      // 2. Identify removed tracks (belonged to this cloud source but not in cloud anymore)
+      // 2. Identify removed tracks (belonged to THIS cloud folder but no longer present in cloud)
       int removedCount = 0;
       final removedIds = <String>[];
       for (final et in existingTracks) {
-        final isFromThisCloud = et.sourceType == 'google_drive' ||
-            et.cloudPath.contains('gdrive://') ||
-            et.sourceType == 'yandex_public';
+        final belongsToThisFolder = et.folderUrl == targetUrl ||
+            (et.folderUrl == null &&
+                (et.sourceType == 'google_drive' ||
+                    et.cloudPath.contains('gdrive://') ||
+                    et.sourceType == 'yandex_public'));
 
-        if (isFromThisCloud && !cloudIds.contains(et.id)) {
+        if (belongsToThisFolder && !cloudIds.contains(et.id)) {
           removedIds.add(et.id);
           removedCount++;
-          // Delete cached file if present
           if (et.localCachePath != null && et.localCachePath!.isNotEmpty) {
             try {
               final f = File(et.localCachePath!);
@@ -228,12 +383,25 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       }
 
       final now = DateTime.now();
-      await DBHelper.instance.savePublicFolder(targetUrl, 'Облачная папка', cloudTracks.length);
+      String folderName = customName?.trim() ?? '';
+      if (folderName.isEmpty) {
+        if (targetUrl.contains('drive.google.com')) {
+          folderName = 'Google Диск (${cloudTracks.length} треков)';
+        } else if (targetUrl.contains('yandex')) {
+          folderName = 'Яндекс.Диск (${cloudTracks.length} треков)';
+        } else {
+          folderName = 'Облачная папка (${cloudTracks.length} треков)';
+        }
+      }
 
+      await DBHelper.instance.savePublicFolder(targetUrl, folderName, cloudTracks.length);
+
+      final updatedFolders = await DBHelper.instance.getSavedFolders();
       state = state.copyWith(
         activeCloudUrl: targetUrl,
         lastCloudCheckCount: cloudTracks.length,
         lastSyncedAt: now,
+        savedFolders: updatedFolders,
       );
 
       await loadTracks();
@@ -249,8 +417,23 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
     }
   }
 
-  Future<int> importFromPublicUrl(String url) async {
-    final result = await syncWithCloud(folderUrl: url);
+  Future<void> deleteFolder(String folderUrl, {bool deleteTracks = false}) async {
+    state = state.copyWith(isLoading: true);
+    await DBHelper.instance.deletePublicFolder(folderUrl, deleteTracks: deleteTracks);
+    if (state.selectedFolderUrl == folderUrl) {
+      state = state.copyWith(clearSelectedFolder: true);
+    }
+    if (state.activeCloudUrl == folderUrl) {
+      final remaining = await DBHelper.instance.getSavedFolders();
+      state = state.copyWith(
+        activeCloudUrl: remaining.isNotEmpty ? remaining.first['url'] as String? : null,
+      );
+    }
+    await loadTracks();
+  }
+
+  Future<int> importFromPublicUrl(String url, {String? customName}) async {
+    final result = await syncWithCloud(folderUrl: url, customName: customName);
     return result.totalCloudTracks;
   }
 
@@ -293,7 +476,12 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       return t.id == track.id ? t.copyWith(rating: rating) : t;
     }).toList();
     final oneStarCount = await DBHelper.instance.getOneStarCount();
-    state = state.copyWith(tracks: updatedTracks, oneStarCount: oneStarCount);
+    final oneStarSize = await DBHelper.instance.getOneStarTracksSize();
+    state = state.copyWith(
+      tracks: updatedTracks,
+      oneStarCount: oneStarCount,
+      oneStarTotalSize: oneStarSize,
+    );
   }
 
   Future<void> toggleCache(Track track) async {
@@ -327,6 +515,46 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Ошибка удаления: $e');
       return 0;
+    }
+  }
+
+  /// Clean all track titles from technical tags and file extensions
+  Future<int> cleanTrackTitles() async {
+    state = state.copyWith(isLoading: true);
+    final cleaned = await DBHelper.instance.cleanAllTrackTitles();
+    await loadTracks();
+    return cleaned;
+  }
+
+  /// Exports rated tracks as JSON string
+  Future<String> exportRatingsJson() async {
+    final data = await DBHelper.instance.exportRatingsData();
+    return const JsonEncoder.withIndent('  ').convert({
+      'app': 'Cloud Music Player',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'ratingsCount': data.length,
+      'ratings': data,
+    });
+  }
+
+  /// Imports ratings from JSON string and updates tracks in library
+  Future<int> importRatingsFromJson(String jsonString) async {
+    try {
+      final decoded = json.decode(jsonString);
+      List<dynamic> items;
+      if (decoded is List) {
+        items = decoded;
+      } else if (decoded is Map && decoded['ratings'] is List) {
+        items = decoded['ratings'] as List;
+      } else {
+        throw Exception('Неверный формат JSON резервной копии');
+      }
+
+      final updated = await DBHelper.instance.importRatingsData(items);
+      await loadTracks();
+      return updated;
+    } catch (e) {
+      rethrow;
     }
   }
 }

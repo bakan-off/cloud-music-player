@@ -13,6 +13,7 @@ class Track {
   final int fileSize;
   final String sourceType; // 'yandex_public', 'direct_url', 'local_file'
   final DateTime addedAt;
+  final String? folderUrl;
 
   Track({
     required this.id,
@@ -27,6 +28,7 @@ class Track {
     this.fileSize = 0,
     this.sourceType = 'yandex_public',
     DateTime? addedAt,
+    this.folderUrl,
   }) : addedAt = addedAt ?? DateTime.now();
 
   bool get isCached => localCachePath != null && localCachePath!.isNotEmpty;
@@ -79,6 +81,8 @@ class Track {
     int? fileSize,
     String? sourceType,
     DateTime? addedAt,
+    String? folderUrl,
+    bool clearFolderUrl = false,
   }) {
     return Track(
       id: id ?? this.id,
@@ -93,6 +97,7 @@ class Track {
       fileSize: fileSize ?? this.fileSize,
       sourceType: sourceType ?? this.sourceType,
       addedAt: addedAt ?? this.addedAt,
+      folderUrl: clearFolderUrl ? null : (folderUrl ?? this.folderUrl),
     );
   }
 
@@ -110,6 +115,7 @@ class Track {
       'fileSize': fileSize,
       'sourceType': sourceType,
       'addedAt': addedAt.toIso8601String(),
+      'folderUrl': folderUrl,
     };
   }
 
@@ -129,6 +135,7 @@ class Track {
       addedAt: map['addedAt'] != null
           ? DateTime.tryParse(map['addedAt'] as String) ?? DateTime.now()
           : DateTime.now(),
+      folderUrl: map['folderUrl'] as String?,
     );
   }
 }

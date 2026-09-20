@@ -21,6 +21,64 @@ class LibraryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Медиатека'),
         actions: [
+          PopupMenuButton<TrackSortOption>(
+            icon: const Icon(Icons.sort_rounded),
+            tooltip: 'Сортировка (${libraryState.sortOption.label})',
+            initialValue: libraryState.sortOption,
+            onSelected: (opt) => notifier.setSortOption(opt),
+            itemBuilder: (context) => TrackSortOption.values.map((opt) {
+              final isSelected = libraryState.sortOption == opt;
+              IconData icon;
+              switch (opt) {
+                case TrackSortOption.dateAddedDesc:
+                  icon = Icons.access_time_rounded;
+                  break;
+                case TrackSortOption.dateAddedAsc:
+                  icon = Icons.history_rounded;
+                  break;
+                case TrackSortOption.titleAsc:
+                  icon = Icons.sort_by_alpha_rounded;
+                  break;
+                case TrackSortOption.titleDesc:
+                  icon = Icons.sort_by_alpha_rounded;
+                  break;
+                case TrackSortOption.artistAsc:
+                  icon = Icons.person_rounded;
+                  break;
+                case TrackSortOption.ratingDesc:
+                  icon = Icons.star_rounded;
+                  break;
+                case TrackSortOption.durationDesc:
+                  icon = Icons.timer_outlined;
+                  break;
+              }
+              return PopupMenuItem<TrackSortOption>(
+                value: opt,
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: isSelected ? AppTheme.primaryAccent : AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        opt.label,
+                        style: TextStyle(
+                          color: isSelected ? AppTheme.primaryAccent : AppTheme.textPrimary,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(Icons.check_rounded, size: 18, color: AppTheme.primaryAccent),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
           IconButton(
             icon: const Icon(Icons.sync_rounded),
             tooltip: 'Синхронизировать с облаком',
@@ -92,6 +150,44 @@ class LibraryScreen extends ConsumerWidget {
             ),
           ),
 
+          // Folder Filter Chips (if more than 1 folder exists)
+          if (libraryState.savedFolders.length > 1)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+              alignment: Alignment.centerLeft,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6.0),
+                      child: Icon(Icons.folder_outlined, size: 18, color: AppTheme.textSecondary),
+                    ),
+                    _buildFilterChip(
+                      label: 'Все папки',
+                      isSelected: libraryState.selectedFolderUrl == null,
+                      onSelected: () => notifier.setSelectedFolder(null),
+                    ),
+                    ...libraryState.savedFolders.map((f) {
+                      final name = (f['name'] as String?)?.trim();
+                      final displayName = (name != null && name.isNotEmpty) ? name : 'Папка';
+                      final count = f['trackCount'] ?? 0;
+                      final url = f['url'] as String;
+                      return Padding(
+                        padding: const EdgeInsets.only(left: 6.0),
+                        child: _buildFilterChip(
+                          label: '$displayName ($count)',
+                          isSelected: libraryState.selectedFolderUrl == url,
+                          onSelected: () => notifier.setSelectedFolder(url),
+                          selectedColor: AppTheme.primaryAccent.withOpacity(0.25),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+
           // Rating Filter Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -102,6 +198,15 @@ class LibraryScreen extends ConsumerWidget {
                   label: 'Все (${libraryState.tracks.length})',
                   isSelected: libraryState.ratingFilter == null,
                   onSelected: () => notifier.setRatingFilter(null),
+                ),
+                const SizedBox(width: 8),
+                _buildFilterChip(
+                  label: 'Новые (${libraryState.newTracksCount})',
+                  isSelected: libraryState.ratingFilter == -1,
+                  onSelected: () => notifier.setRatingFilter(-1),
+                  icon: Icons.auto_awesome_rounded,
+                  iconColor: AppTheme.primaryAccent,
+                  selectedColor: AppTheme.primaryAccent.withOpacity(0.25),
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
@@ -149,44 +254,6 @@ class LibraryScreen extends ConsumerWidget {
             ),
           ),
 
-          // 1-Star Cleanup Banner if there are any 1-star tracks
-          if (libraryState.oneStarCount > 0)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppTheme.dangerColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.dangerColor.withOpacity(0.35)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.auto_delete_rounded, color: AppTheme.dangerColor, size: 22),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Треков с 1★: ${libraryState.oneStarCount}',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.dangerColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      minimumSize: Size.zero,
-                    ),
-                    onPressed: () => _confirmDeleteOneStar(context, ref, libraryState.oneStarCount),
-                    child: const Text('Удалить все 1★', style: TextStyle(fontSize: 12)),
-                  ),
-                ],
-              ),
-            ),
-
           // Action bar (Shuffle All & Track Count)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
@@ -195,6 +262,11 @@ class LibraryScreen extends ConsumerWidget {
                 Text(
                   'Найдено: ${libraryState.filteredTracks.length}',
                   style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '• ${libraryState.sortOption.label}',
+                  style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.7), fontSize: 11),
                 ),
                 const Spacer(),
                 if (libraryState.filteredTracks.isNotEmpty)
@@ -221,12 +293,16 @@ class LibraryScreen extends ConsumerWidget {
                 ? Center(child: CircularProgressIndicator(color: AppTheme.primaryAccent))
                 : libraryState.filteredTracks.isEmpty
                     ? _buildEmptyState(context, libraryState)
-                    : ListView.builder(
-                        itemCount: libraryState.filteredTracks.length,
-                        itemBuilder: (context, index) {
-                          final track = libraryState.filteredTracks[index];
-                          return _buildTrackTile(context, ref, track, libraryState.filteredTracks, index);
-                        },
+                    : Scrollbar(
+                        interactive: true,
+                        thumbVisibility: true,
+                        child: ListView.builder(
+                          itemCount: libraryState.filteredTracks.length,
+                          itemBuilder: (context, index) {
+                            final track = libraryState.filteredTracks[index];
+                            return _buildTrackTile(context, ref, track, libraryState.filteredTracks, index);
+                          },
+                        ),
                       ),
           ),
         ],
@@ -238,10 +314,12 @@ class LibraryScreen extends ConsumerWidget {
     required String label,
     required bool isSelected,
     required VoidCallback onSelected,
+    IconData? icon,
     Color? iconColor,
     Color? selectedColor,
   }) {
     return ChoiceChip(
+      avatar: icon != null ? Icon(icon, size: 15, color: iconColor ?? Colors.white) : null,
       label: Text(
         label,
         style: TextStyle(
@@ -414,48 +492,6 @@ class LibraryScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _confirmDeleteOneStar(BuildContext context, WidgetRef ref, int count) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.dangerColor),
-            const SizedBox(width: 10),
-            const Text('Удаление 1★'),
-          ],
-        ),
-        content: Text(
-          'Вы уверены, что хотите удалить $count трек(ов) с 1 звездой?\n\n'
-          'Они будут удалены из медиатеки и их оффлайн-файлы будут очищены с устройства.',
-          style: const TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('Отмена', style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerColor),
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              final deleted = await ref.read(libraryProvider.notifier).deleteOneStarTracks();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Успешно удалено $deleted трек(ов)'),
-                    backgroundColor: AppTheme.dangerColor,
-                  ),
-                );
-              }
-            },
-            child: const Text('Удалить'),
-          ),
-        ],
       ),
     );
   }
