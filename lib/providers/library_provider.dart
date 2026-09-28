@@ -82,22 +82,58 @@ class LibraryState {
     this.savedFolders = const [],
   });
 
-  int get newTracksCount {
-    final cutoff = DateTime.now().subtract(const Duration(days: 14));
-    final count = tracks.where((t) => t.addedAt.isAfter(cutoff)).length;
-    return count > 0 ? count : (tracks.length > 30 ? 30 : tracks.length);
+  List<Track> get newTracks {
+    final baseTracks = (selectedFolderUrl != null && selectedFolderUrl!.isNotEmpty)
+        ? tracks.where((t) => t.folderUrl == selectedFolderUrl).toList()
+        : tracks;
+
+    if (baseTracks.isEmpty) return [];
+
+    DateTime earliest = baseTracks.first.addedAt;
+    DateTime latest = baseTracks.first.addedAt;
+    for (final t in baseTracks) {
+      if (t.addedAt.isBefore(earliest)) earliest = t.addedAt;
+      if (t.addedAt.isAfter(latest)) latest = t.addedAt;
+    }
+
+    // If all tracks in library were added in the same initial session (< 15 minutes apart):
+    // The entire library is the initial import baseline. No subsequent new tracks exist yet.
+    if (latest.difference(earliest).inMinutes < 15) {
+      return [];
+    }
+
+    // Baseline import is defined as tracks added within 30 minutes of the earliest track:
+    final baselineCutoff = earliest.add(const Duration(minutes: 30));
+    final nonBaseline = baseTracks.where((t) => t.addedAt.isAfter(baselineCutoff)).toList();
+    if (nonBaseline.isEmpty) return [];
+
+    // Filter by recent additions (last 14 days)
+    final now = DateTime.now();
+    final cutoff14Days = now.subtract(const Duration(days: 14));
+    var result = nonBaseline.where((t) => t.addedAt.isAfter(cutoff14Days)).toList();
+
+    // If non-baseline additions still constitute > 70% of the library
+    // (e.g. user imported a second large folder into a small existing library),
+    // or if the additions are older than 14 days:
+    // Narrow down to the most recent addition session (within 24 hours of the latest track added).
+    if (result.isEmpty || (result.length > 50 && result.length > baseTracks.length * 0.7)) {
+      final latestSessionCutoff = latest.subtract(const Duration(hours: 24));
+      result = nonBaseline.where((t) => t.addedAt.isAfter(latestSessionCutoff)).toList();
+    }
+
+    result.sort((a, b) {
+      final cmp = b.addedAt.compareTo(a.addedAt);
+      if (cmp != 0) return cmp;
+      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
+    return result;
   }
 
+  int get newTracksCount => newTracks.length;
+
   List<Track> get filteredTracks {
-    final now = DateTime.now();
-    final cutoff = now.subtract(const Duration(days: 14));
-    final recentIn14Days = tracks.where((t) => t.addedAt.isAfter(cutoff)).toList();
-    final List<String> newIds = recentIn14Days.isNotEmpty
-        ? recentIn14Days.map((t) => t.id).toList()
-        : (List<Track>.from(tracks)..sort((a, b) => b.addedAt.compareTo(a.addedAt)))
-            .take(30)
-            .map((t) => t.id)
-            .toList();
+    final newTrackList = newTracks;
+    final Set<String> newIds = newTrackList.map((t) => t.id).toSet();
 
     final filtered = tracks.where((track) {
       // 1. Folder filter
@@ -127,10 +163,18 @@ class LibraryState {
     // 4. Sort
     switch (sortOption) {
       case TrackSortOption.dateAddedDesc:
-        filtered.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+        filtered.sort((a, b) {
+          final cmp = b.addedAt.compareTo(a.addedAt);
+          if (cmp != 0) return cmp;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
         break;
       case TrackSortOption.dateAddedAsc:
-        filtered.sort((a, b) => a.addedAt.compareTo(b.addedAt));
+        filtered.sort((a, b) {
+          final cmp = a.addedAt.compareTo(b.addedAt);
+          if (cmp != 0) return cmp;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
         break;
       case TrackSortOption.titleAsc:
         filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
@@ -290,7 +334,7 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
   }
 
   void setRatingFilter(int? rating) {
-    if (rating == null) {
+    if (rating == null || state.ratingFilter == rating) {
       state = state.copyWith(clearRatingFilter: true);
     } else {
       state = state.copyWith(ratingFilter: rating);

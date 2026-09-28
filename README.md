@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/bakan-off/cloud-music-player/releases"><img src="https://img.shields.io/badge/Release-v1.0.11-success?logo=github&style=for-the-badge" alt="Release v1.0.11"></a>
+  <a href="https://github.com/bakan-off/cloud-music-player/releases"><img src="https://img.shields.io/badge/Release-v1.0.12-success?logo=github&style=for-the-badge" alt="Release v1.0.12"></a>
   <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.41+-02569B?logo=flutter&logoColor=white&style=for-the-badge" alt="Flutter"></a>
   <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-3.11+-0175C2?logo=dart&logoColor=white&style=for-the-badge" alt="Dart"></a>
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Desktop-3DDC84?logo=android&logoColor=white&style=for-the-badge" alt="Platform">
@@ -23,7 +23,7 @@
 
 ## 📥 Скачать приложение
 
-👉 **[Скачать установочный файл: cloud-music-player-v1.0.11.apk](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.11/cloud-music-player-v1.0.11.apk)**
+👉 **[Скачать установочный файл: cloud-music-player-v1.0.12.apk](https://github.com/bakan-off/cloud-music-player/releases/download/v1.0.12/cloud-music-player-v1.0.12.apk)**
 
 > Все версии, changelog и предыдущие билды доступны в разделе **[GitHub Releases](https://github.com/bakan-off/cloud-music-player/releases)**.  
 > Обновления на новые версии можно ставить **прямо из приложения в один клик** («Настройки» → «Обновление приложения»).

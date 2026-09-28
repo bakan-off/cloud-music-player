@@ -96,9 +96,20 @@ class LibraryScreen extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'В облаке: ${res.totalCloudTracks} треков (новых: ${res.addedTracks}, удалено: ${res.removedTracks})',
+                          res.addedTracks > 0
+                              ? 'В облаке: ${res.totalCloudTracks} треков (+${res.addedTracks} новых)'
+                              : 'В облаке: ${res.totalCloudTracks} треков (новых нет)',
                         ),
                         backgroundColor: AppTheme.primaryColor,
+                        action: res.addedTracks > 0
+                            ? SnackBarAction(
+                                label: 'Показать новые',
+                                textColor: AppTheme.starColor,
+                                onPressed: () {
+                                  notifier.setRatingFilter(-1);
+                                },
+                              )
+                            : null,
                       ),
                     );
                   }
@@ -468,25 +479,36 @@ class LibraryScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, LibraryState state) {
+    String title = 'Медиатека пуста';
+    String message = 'Добавьте публичную ссылку на облако или откройте локальные треки во вкладке «Импорт»';
+
+    if (state.ratingFilter == -1) {
+      title = 'Новых треков пока нет';
+      message = 'При синхронизации с облаком все добавленные в папку аудиофайлы появятся здесь.';
+    } else if (state.searchQuery.isNotEmpty || state.ratingFilter != null) {
+      title = 'Ничего не найдено по фильтрам';
+      message = 'Попробуйте изменить поисковый запрос или сбросить фильтр звезд';
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.library_music_rounded, size: 64, color: AppTheme.textSecondary.withOpacity(0.4)),
+            Icon(
+              state.ratingFilter == -1 ? Icons.auto_awesome_rounded : Icons.library_music_rounded,
+              size: 64,
+              color: AppTheme.textSecondary.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
             Text(
-              state.searchQuery.isNotEmpty || state.ratingFilter != null
-                  ? 'Ничего не найдено по фильтрам'
-                  : 'Медиатека пуста',
+              title,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
-              state.searchQuery.isNotEmpty || state.ratingFilter != null
-                  ? 'Попробуйте изменить поисковый запрос или сбросить фильтр звезд'
-                  : 'Добавьте публичную ссылку на облако или откройте локальные треки во вкладке «Импорт»',
+              message,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),

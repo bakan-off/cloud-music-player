@@ -39,7 +39,7 @@ class UpdateService {
   static final UpdateService instance = UpdateService._internal();
   UpdateService._internal();
 
-  static const String currentVersion = '1.0.11';
+  static const String currentVersion = '1.0.12';
   static const String repoOwner = 'bakan-off';
   static const String repoName = 'cloud-music-player';
   static const String githubRepoUrl = 'https://github.com/$repoOwner/$repoName';
@@ -149,7 +149,7 @@ class UpdateService {
     }
     dir ??= await getTemporaryDirectory();
 
-    final apkFile = File('${dir.path}/cloud-music-player-v1.0.11.apk');
+    final apkFile = File('${dir.path}/cloud_player_update.apk');
     if (await apkFile.exists()) {
       try {
         await apkFile.delete();

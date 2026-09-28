@@ -142,6 +142,61 @@ void main() {
       expect(filtered.map((t) => t.id), containsAll(['2', '3']));
       expect(filtered.map((t) => t.id), isNot(contains('1')));
     });
+
+    test('810 baseline tracks + 10 new tracks accurately reports 10 new tracks', () {
+      final baseDate = DateTime.now().subtract(const Duration(days: 8));
+      final todayDate = DateTime.now();
+
+      final baselineTracks = List.generate(
+        810,
+        (i) => Track(
+          id: 'base_$i',
+          title: 'Old Track $i',
+          artist: 'Old Artist',
+          streamUrl: 'http://old/$i',
+          cloudPath: 'old/$i',
+          addedAt: baseDate.add(Duration(milliseconds: i * 5)),
+        ),
+      );
+
+      final newAddedTracks = List.generate(
+        10,
+        (i) => Track(
+          id: 'new_$i',
+          title: 'New Track $i',
+          artist: 'New Artist',
+          streamUrl: 'http://new/$i',
+          cloudPath: 'new/$i',
+          addedAt: todayDate.add(Duration(milliseconds: i * 5)),
+        ),
+      );
+
+      final allTracks = [...baselineTracks, ...newAddedTracks];
+      final state = LibraryState(tracks: allTracks, ratingFilter: -1);
+
+      expect(state.newTracksCount, 10);
+      expect(state.filteredTracks.length, 10);
+      expect(state.filteredTracks.every((t) => t.id.startsWith('new_')), isTrue);
+    });
+
+    test('Initial single batch import reports 0 new tracks', () {
+      final now = DateTime.now();
+      final initialTracks = List.generate(
+        100,
+        (i) => Track(
+          id: 'init_$i',
+          title: 'Track $i',
+          artist: 'Artist',
+          streamUrl: 'http://init/$i',
+          cloudPath: 'init/$i',
+          addedAt: now.add(Duration(milliseconds: i * 10)),
+        ),
+      );
+
+      final state = LibraryState(tracks: initialTracks);
+      expect(state.newTracksCount, 0);
+      expect(state.newTracks.isEmpty, isTrue);
+    });
   });
 
   group('Ratings JSON Export / Import format', () {
